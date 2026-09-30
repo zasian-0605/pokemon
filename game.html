@@ -84,16 +84,16 @@ main{display:grid;grid-template-columns:1.4fr .9fr;gap:14px;padding:14px}.panel{
 <script>
 const areas=[
  {name:"始まりの草原",lv:30,boss:"garchomp",types:["normal","grass","bug"],jp:"原生の覇者"},
- {name:"深緑の森",lv:38,boss:"venusaur",types:["grass","bug","poison","fairy"],jp:"森の古王"},
- {name:"蒼海の島",lv:46,boss:"kingler",types:["water","flying","ice"],jp:"深海の王"},
- {name:"灼熱砂漠",lv:54,boss:"tyranitar",types:["ground","rock","fire"],jp:"砂塵の巨獣"},
- {name:"極寒の雪原",lv:62,boss:"abomasnow",types:["ice","dark","steel"],jp:"氷河の守護者"},
- {name:"太古の化石地帯",lv:70,boss:"aerodactyl",types:["rock","flying","dragon"],jp:"太古の王"},
+ {name:"深緑の森",lv:38,boss:"venusaur-gmax",types:["grass","bug","poison","fairy"],jp:"森の古王"},
+ {name:"蒼海の島",lv:46,boss:"kingler-gmax",types:["water","flying","ice"],jp:"深海の王"},
+ {name:"灼熱砂漠",lv:54,boss:"tyranitar-mega",types:["ground","rock","fire"],jp:"砂塵の巨獣"},
+ {name:"極寒の雪原",lv:62,boss:"abomasnow-mega",types:["ice","dark","steel"],jp:"氷河の守護者"},
+ {name:"太古の化石地帯",lv:70,boss:"aerodactyl-mega",types:["rock","flying","dragon"],jp:"太古の王"},
  {name:"ヒスイ原野",lv:78,boss:"samurott-hisui",types:["water","dark","ground","fighting"],jp:"ヒスイの守護者"},
  {name:"古代パラドックス領域",lv:86,boss:"roaring-moon",types:["dragon","dark","rock"],jp:"古代の覇者"},
  {name:"未来パラドックス都市",lv:94,boss:"iron-thorns",types:["electric","steel"],jp:"未来の機械王"},
  {name:"災厄の遺跡",lv:102,boss:"kingambit",types:["dark","ghost","poison"],jp:"災厄の使徒"},
- {name:"時空の裂け目",lv:110,boss:"metagross",types:["psychic","steel","dragon"],jp:"時空の異形"},
+ {name:"時空の裂け目",lv:110,boss:"metagross-mega",types:["psychic","steel","dragon"],jp:"時空の異形"},
  {name:"終焉の世界",lv:120,boss:"rayquaza",types:["dragon","flying","legendary"],jp:"終焉の門"}
 ];
 const finalGuardians=["mewtwo","rayquaza","necrozma","zacian","giratina-origin"];
@@ -137,8 +137,10 @@ function start(){
 $("startBtn").onclick=start;
 function maybeEncounter(){
  if(Math.random()>0.13||state.battle)return;
- const a=areas[state.area],p=PokeData.random(x=>x.speciesInfo?!x.speciesInfo.isLegendary&&!x.speciesInfo.isMythical:true);
- if(p) beginBattle(false,p);
+ const wanted=areas[state.area].types||[];
+ let p=PokeData.random(x=>(x.speciesInfo?!x.speciesInfo.isLegendary&&!x.speciesInfo.isMythical:true)&&(!wanted.length||(x.types||[]).some(t=>wanted.includes(t))));
+ if(!p)p=PokeData.random(x=>x.speciesInfo?!x.speciesInfo.isLegendary&&!x.speciesInfo.isMythical:true);
+ if(p)beginBattle(false,p);
 }
 function move(dx,dy){
  if(state.battle)return;
@@ -167,9 +169,15 @@ async function setupBattleMoves(){
    b.textContent=(m&&m.jpName)||n;b.onclick=()=>useMove(n,m);$("moves").appendChild(b);
  }
 }
+function findPokemonKey(key){
+ const k=String(key).toLowerCase();
+ if(PokeData.state.byName.has(k))return PokeData.state.byName.get(k);
+ const base=k.replace(/-(mega|gmax)$/,"");
+ return PokeData.state.byName.get(base)||null;
+}
 function beginBattle(isBoss,raw){
  let p=raw;
- if(isBoss){p=PokeData.state.byName.get(raw)||PokeData.state.byName.get(String(raw).toLowerCase())}
+ if(isBoss)p=findPokemonKey(raw);else if(raw&&raw.id)p=raw;
  if(!p)return;
  const lv=isBoss?areas[state.area].lv:Math.max(12+state.area*5,Math.min(areas[state.area].lv-4,22+state.area*6));
  const maxHp=Math.max(60,40+((p.stats&&p.stats.hp)||60)+Math.floor(lv/2));
