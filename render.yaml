@@ -3,7 +3,7 @@ services:
     name: pokemon-wild-world
     runtime: node
     plan: free
-    buildCommand: npm ci
+    buildCommand: npm install
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
