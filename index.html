@@ -63,7 +63,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
   <div class="patch" style="left:76%;top:64%;width:15%;height:22%"></div>
   <div id="player" style="left:50%;top:72%"></div>
 </div>
-<div class="panel"><div id="log">ポケモンたちが暮らす、人間のいない世界。まずは草むらを探そう。</div><div class="small">会話・調査・逃走は共存寄り。攻撃を繰り返すほど、Gルート側へ傾く。</div></div>
+<div class="panel"><div id="log">ポケモンたちが暮らす世界。PokeAPIのデータを読み込んで、野生ポケモンを自動生成します。</div><div class="small">会話・調査・逃走は共存寄り。攻撃を繰り返すほど、Gルート側へ傾く。</div></div>
 <div class="panel" id="onlinePanel">  <div><b>オンラインモード</b><div class="small">同じゲームを遊んでいるプレイヤーと最大6人の部屋で一緒に探索できます。</div></div>  <div class="online-row"><button id="onlineToggle" onclick="toggleOnline()">オンラインモード ON</button><span id="onlineStatus" class="small">オフライン</span></div>  <div id="onlineRoom" style="display:none"><div class="small">ルーム</div><b id="roomId">-</b><div id="roomPlayers"></div><div class="online-row"><input id="chatInput" maxlength="120" placeholder="ポケモンの世界でチャット"><button onclick="sendChat()">送信</button></div><div id="chatLog"></div></div></div><div id="exploreActions" class="controls">
   <button onclick="talkNearby()">話す</button><button onclick="inspectWorld()">調べる</button><button onclick="rest()">休む</button><button onclick="challengeGate()">門のヌシ</button><button onclick="toggleRouteInfo()">ルート情報</button>
 </div>
@@ -98,6 +98,7 @@ button:disabled{opacity:.4;cursor:not-allowed}
 </div>
 </main>
 </div>
+<script src="./pokeapi.js"></script>
 <script>
 const finalGuardians = ['ミュウツー','レックウザ','ネクロズマ','ザシアン','ギラティナ'];
 const worlds = [
@@ -122,11 +123,48 @@ function move(dx,dy){if($('battle').style.display==='block')return; pos.x=Math.m
 document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')move(0,-4);if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')move(0,4);if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-4,0);if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(4,0)});
 function maybeEncounter(){if(Math.random()<0.14)startBattle(false)}
 function challengeGate(){if($('battle').style.display==='block')return;if(w<worlds.length-1&&w===0&&karma>20)karma=20;startBattle(true)}
-function chooseEncounter(){const pool=worlds[w].enc;return pool[Math.floor(Math.random()*pool.length)]}
-function startBattle(isBoss){let name=isBoss?worlds[w].boss:chooseEncounter(); if(isBoss&&w===worlds.length-1){name=battleIndex<finalGuardians.length?finalGuardians[battleIndex]:worlds[w].boss} const base=isBoss?worlds[w].bossLv:Math.min(35+w*7, worlds[w].bossLv-4);const gBoost=karma<=-6?Math.min(18,Math.floor(Math.abs(karma)*1.2)):0; const lv=base+gBoost; battle={name,lv,isBoss,hp:100,max:100,playerHp:100,mood:isBoss?'門を守っている。':'こちらを警戒している。',last:Date.now(),puzzleIndex:0,puzzle:isBoss?nushiPuzzle(w):null,atOne:false}; $('battle').style.display='block'; $('exploreActions').style.display='none'; $('enemyName').textContent=((isBoss&&w===worlds.length-1&&battleIndex<finalGuardians.length)?'野生の':(isBoss?'ヌシ・':'野生の'))+name; $('enemyLevel').textContent='Lv '+lv; $('enemyMood').textContent=battle.mood; $('battleMessage').textContent='どうする？'; $('moveMenu').style.display='none'; updateBars(); requestAnimationFrame(battleLoop)}
+function chooseEncounter(){
+  if(PokeData.list.length){
+    const themed={
+      0:['normal','grass','bug'],1:['grass','bug','poison','fairy'],2:['water','flying','ice'],
+      3:['ground','rock','fire'],4:['ice','dark','steel'],5:['rock','flying','dragon'],
+      6:['water','dark','ground','fighting'],7:['dragon','dark','rock'],8:['electric','steel'],
+      9:['dark','ghost','poison'],10:['psychic','steel','dragon'],11:['dragon','steel','ghost']
+    }[w]||[];
+    const candidates=PokeData.list.filter(x=>x.name&&!x.name.includes('-totem'));
+    if(themed.length){
+      const themedCandidates=[];
+      for(const item of candidates.slice(0,1200)){
+        const cached=PokeData.byName.get(item.name);
+        if(cached?.types?.some(t=>themed.includes(t))) themedCandidates.push(item);
+      }
+      if(themedCandidates.length) return themedCandidates[Math.floor(Math.random()*themedCandidates.length)].name;
+    }
+    return candidates[Math.floor(Math.random()*candidates.length)]?.name||worlds[w].enc[0];
+  }
+  const pool=worlds[w].enc;
+  return pool[Math.floor(Math.random()*pool.length)];
+}
+function startBattle(isBoss){let name=isBoss?worlds[w].boss:chooseEncounter(); if(isBoss&&w===worlds.length-1){name=battleIndex<finalGuardians.length?finalGuardians[battleIndex]:worlds[w].boss} const base=isBoss?worlds[w].bossLv:Math.min(35+w*7, worlds[w].bossLv-4);const gBoost=karma<=-6?Math.min(18,Math.floor(Math.abs(karma)*1.2)):0; const lv=base+gBoost; battle={name,lv,isBoss,hp:100,max:100,playerHp:100,mood:isBoss?'門を守っている。':'こちらを警戒している。',last:Date.now(),puzzleIndex:0,puzzle:isBoss?nushiPuzzle(w):null,atOne:false}; $('battle').style.display='block'; $('exploreActions').style.display='none'; $('enemyName').textContent=((isBoss&&w===worlds.length-1&&battleIndex<finalGuardians.length)?'野生の':(isBoss?'ヌシ・':'野生の'))+displayName; $('enemyLevel').textContent='Lv '+lv; $('enemyMood').textContent=battle.mood; $('battleMessage').textContent=poke?('タイプ：'+poke.types.join(' / ')+'　特性：'+(poke.abilities[0]||'不明')):'どうする？'; $('moveMenu').style.display='none'; updateBars(); updateMoveButtons(); requestAnimationFrame(battleLoop)}
 function updateBars(){if(!battle)return;$('enemyFill').style.width=Math.max(0,battle.hp)+'%';$('playerFill').style.width=Math.max(0,battle.playerHp)+'%'}
+function updateMoveButtons(){
+  const buttons=[...$('moveMenu').querySelectorAll('button')];
+  const moves=(battle?.api?.moves||[]).slice(0,4);
+  buttons.forEach((b,i)=>{b.textContent=moves[i]||['たいあたり','かみつく','つばめがえし','まもる'][i];b.dataset.apiMove=moves[i]||'';});
+}
 function fightMenu(){ $('moveMenu').style.display=$('moveMenu').style.display==='grid'?'none':'grid'}
-function useMove(move,damage){if(!battle)return; $('moveMenu').style.display='none'; const bonus=karma<=-6?Math.floor(Math.random()*8):0; const dealt=damage+bonus; battle.hp=Math.max(0,battle.hp-dealt); karma--; $('battleMessage').textContent='主人公は'+move+'！ '+dealt+'ダメージ。'; if(battle.hp<=1&&battle.isBoss){battle.hp=1;battle.atOne=true;$('battleMessage').textContent+=' ヌシは最後の1で耐えた！ ここからは行動の順番が重要だ。'; render(); return} if(battle.hp<=0){setTimeout(()=>finishBattle(false),500);render();return} enemyTurn()}
+async function useMove(move,damage){
+  if(!battle)return;
+  $('moveMenu').style.display='none';
+  const apiMove=battle.api?.moves?.includes(move)?move:null;
+  let power=damage;
+  if(apiMove){
+    try{
+      const res=await fetch(POKEAPI_BASE+'/move/'+encodeURIComponent(apiMove));
+      if(res.ok){const data=await res.json();if(Number.isFinite(data.power)&&data.power>0)power=Math.max(4,Math.min(30,Math.round(data.power/4)));}
+    }catch{}
+  }
+  const bonus=karma<=-6?Math.floor(Math.random()*8):0; const dealt=power+bonus; battle.hp=Math.max(0,battle.hp-dealt); karma--; $('battleMessage').textContent='主人公は'+move+'！ '+dealt+'ダメージ。'; if(battle.hp<=1&&battle.isBoss){battle.hp=1;battle.atOne=true;$('battleMessage').textContent+=' ヌシは最後の1で耐えた！ ここからは行動の順番が重要だ。'; render(); return} if(battle.hp<=0){setTimeout(()=>finishBattle(false),500);render();return} enemyTurn()}
 function enemyTurn(){let attacks=karma<=-6? (Math.random()<0.55?2:1):1; const names=karma<=-6?['じしん','げきりん','ストーンエッジ','ドラゴンクロー']:['たいあたり','かみつく','ひっかく']; let total=0; for(let i=0;i<attacks;i++){const dmg=6+Math.floor(Math.random()*8)+Math.max(0,battle.lv-30); total+=dmg; spawnBullet();} battle.playerHp=Math.max(0,battle.playerHp-total); $('battleMessage').textContent=(attacks>1?'怒涛の連続攻撃！ ':'')+names[Math.floor(Math.random()*names.length)]+'！ '+total+'ダメージ。'; updateBars(); if(battle.playerHp<=0){battle.playerHp=100;karma+=2;setTimeout(()=>finishBattle(true),500)}}
 function spawnBullet(){const zone=$('bulletZone');const b=document.createElement('div');b.className='bullet';b.style.left=(10+Math.random()*80)+'%';b.style.top=(10+Math.random()*80)+'%';zone.appendChild(b);setTimeout(()=>b.remove(),650)}
 function puzzleAction(action){if(!battle?.isBoss||!battle.atOne)return false; const expected=battle.puzzle[battle.puzzleIndex]; if(action===expected){battle.puzzleIndex++; if(battle.puzzleIndex>=battle.puzzle.length){finishBoss();return true;} $('battleMessage').textContent='正しい行動だ。ヌシの反応が変わった……（'+battle.puzzleIndex+'/'+battle.puzzle.length+'）';}else{battle.puzzleIndex=0;$('battleMessage').textContent='その行動ではない。ヌシは様子を見ている。最初からやり直しだ。';} return true;}function escapeBattle(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('run'))return;} const chance=karma<=-6?0.25:0.72;if(Math.random()<chance&&!battle.isBoss){karma++;finishBattle(true)}else{$('battleMessage').textContent=battle.isBoss?'ヌシは道を譲らない。':'逃げられない！';enemyTurn()}}
@@ -134,8 +172,8 @@ function inspectEnemy(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(pu
 function talkEnemy(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('talk'))return;} karma+=2;const lines=battle.isBoss?['ヌシは主人公をじっと見た。','ヌシは「力だけで来る者とは違うな」と呟いた。','ヌシの警戒が少し薄れた。']:['ポケモンは「……少しなら話してもいい」と答えた。','ポケモンは主人公の話を聞いている。','ポケモンは少しだけ警戒を解いた。'];$('battleMessage').textContent=lines[Math.floor(Math.random()*lines.length)];if(battle.isBoss&&karma>=6){setTimeout(()=>finishBoss(),700)}else enemyTurn()}
 function itemAction(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('item'))return;}battle.playerHp=Math.min(100,battle.playerHp+25);karma++;$('battleMessage').textContent='木の実を食べてHPが25回復した。';updateBars();enemyTurn()}
 function finishBattle(escaped){if(!battle)return;const name=battle.name;if(escaped){log('戦闘を終えて、ポケモンは去っていった。')}else{defeated++;log(name+'を倒した。世界の空気が少し変わった。');} battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid';render()}
-function talkNearby(){karma+=2;log('近くのポケモンが振り返った。「こんにちは。ここでは誰も誰かの主人じゃないよ。」');render()}
-function inspectWorld(){karma+=1;log('調べる：この世界には人間がいない。ポケモンたちが自分の意思で暮らしている。');render()}
+function talkNearby(){karma+=2;log('近くのポケモンが振り返った。「こんにちは。ここではポケモンも人間も、自分の意思で生きているよ。」');render()}
+function inspectWorld(){karma+=1;log('調べる：この世界では、ポケモンはPokeAPIの図鑑データを基準にして自動生成される。');render()}
 function rest(){karma+=1;log('草むらで少し休んだ。遠くからポケモンの声が聞こえる。');render()}
 function toggleRouteInfo(){const r=karma<=-6?'Gルート：敵が強くなり、連続攻撃が増える':karma>=6?'N寄り：会話・観察で衝突を避けやすい':'Bルート：戦い方次第でどちらにも傾く';log(r);render()}
 function finishBoss(){const isFinal=w===worlds.length-1; if(isFinal&&battleIndex<finalGuardians.length){const fallen=finalGuardians[battleIndex]; battleIndex++; battle=null; setTimeout(()=>startBattle(true),650); log(fallen+'は倒れた。人に従っていない別の強大なポケモンが現れた。'); return;} const name=isFinal?'終焉のヌシ':worlds[w].boss; caught.push(name); defeated++; battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid'; if(isFinal){log('最後の野生伝説たちを越え、終焉のヌシ '+name+' は最後の1で耐えた後に倒れた。唯一、捕獲できるのはこのヌシだ！最終門が開いた！');}else{w++;pos={x:50,y:72};log('ヌシ '+name+' は最後の1で耐えた後、倒れた。捕獲に成功。次の門が開いた！');}render()}
@@ -147,7 +185,9 @@ function sendChat(){const input=$('chatInput');const text=input.value.trim();if(
 
 function battleLoop(){if(!battle)return;const s=$('soul');const handler=e=>{if(!battle)return;let x=parseFloat(s.style.left),y=parseFloat(s.style.top);if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')y-=6;if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')y+=6;if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')x-=6;if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')x+=6;s.style.left=Math.max(5,Math.min(95,x))+'%';s.style.top=Math.max(5,Math.min(95,y))+'%';};document.onkeydown=handler}
 render();
-log('まずは草むらへ。奥へ進むと野生ポケモン、門の前ではヌシと戦える。');
+log('PokeAPIを読み込み中……');
+PokeData.init().then(()=>{log('PokeAPIのポケモンデータを読み込みました。草むらへ行くと自動で野生ポケモンが選ばれます。');}).catch(()=>{log('PokeAPIに接続できなかったため、内蔵データでゲームを続行します。');});
+
 $('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
 </script>
 </body>
