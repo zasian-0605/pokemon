@@ -1,0 +1,52 @@
+name: Import PokéAPI data
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout this repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Download official PokéAPI data
+        run: |
+          rm -rf data
+          git clone --depth 1 https://github.com/PokeAPI/api-data.git /tmp/pokeapi-data
+          cp -a /tmp/pokeapi-data/data ./data
+
+      - name: Add attribution
+        run: |
+          cat > POKEAPI-SOURCE.md <<'EOF'
+# PokéAPI data
+
+This repository contains a local copy of data from the official PokéAPI
+data repository:
+
+https://github.com/PokeAPI/api-data
+
+PokéAPI project:
+https://pokeapi.co/
+
+The data is imported automatically by GitHub Actions.
+EOF
+
+      - name: Commit imported data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data POKEAPI-SOURCE.md
+          if git diff --cached --quiet; then
+            echo "No data changes."
+            exit 0
+          fi
+          git commit -m "Import latest PokéAPI data"
+          git push
