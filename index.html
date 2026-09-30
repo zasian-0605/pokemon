@@ -123,6 +123,37 @@ function move(dx,dy){if($('battle').style.display==='block')return; pos.x=Math.m
 document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')move(0,-4);if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')move(0,4);if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-4,0);if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(4,0)});
 function maybeEncounter(){if(Math.random()<0.14)startBattle(false)}
 function challengeGate(){if($('battle').style.display==='block')return;if(w<worlds.length-1&&w===0&&karma>20)karma=20;startBattle(true)}
+const BOSS_API_NAMES={
+  'ガブリアス':'garchomp',
+  'キョダイマックスフシギバナ':'venusaur-gmax',
+  'キョダイマックスキングラー':'kingler-gmax',
+  'メガバンギラス':'tyranitar-mega',
+  'メガユキノオー':'abomasnow-mega',
+  'メガプテラ':'aerodactyl-mega',
+  'ヒスイダイケンキ':'samurott-hisui',
+  'トドロクツキ':'roaring-moon',
+  'テツノイバラ':'iron-thorns',
+  'テラスタルドドゲザン':'kingambit',
+  'メガメタグロス':'metagross-mega',
+  'ミュウツー':'mewtwo',
+  'レックウザ':'rayquaza',
+  'ネクロズマ':'necrozma',
+  'ザシアン':'zacian',
+  'ギラティナ':'giratina-origin'
+};
+function nushiPuzzle(index){
+  const patterns=[
+    ['run','run','talk'],
+    ['inspect','talk','item'],
+    ['talk','inspect','run'],
+    ['run','inspect','talk','talk'],
+    ['item','run','talk'],
+    ['inspect','run','item','talk'],
+    ['talk','item','inspect','run'],
+    ['run','run','inspect','talk']
+  ];
+  return patterns[index%patterns.length];
+}
 function chooseEncounter(){
   if(PokeData.list.length){
     const themed={
@@ -145,18 +176,34 @@ function chooseEncounter(){
   const pool=worlds[w].enc;
   return pool[Math.floor(Math.random()*pool.length)];
 }
-function startBattle(isBoss){let name=isBoss?worlds[w].boss:chooseEncounter(); if(isBoss&&w===worlds.length-1){name=battleIndex<finalGuardians.length?finalGuardians[battleIndex]:worlds[w].boss} const base=isBoss?worlds[w].bossLv:Math.min(35+w*7, worlds[w].bossLv-4);const gBoost=karma<=-6?Math.min(18,Math.floor(Math.abs(karma)*1.2)):0; const lv=base+gBoost; battle={name,lv,isBoss,hp:100,max:100,playerHp:100,mood:isBoss?'門を守っている。':'こちらを警戒している。',last:Date.now(),puzzleIndex:0,puzzle:isBoss?nushiPuzzle(w):null,atOne:false}; $('battle').style.display='block'; $('exploreActions').style.display='none'; $('enemyName').textContent=((isBoss&&w===worlds.length-1&&battleIndex<finalGuardians.length)?'野生の':(isBoss?'ヌシ・':'野生の'))+displayName; $('enemyLevel').textContent='Lv '+lv; $('enemyMood').textContent=battle.mood; $('battleMessage').textContent=poke?('タイプ：'+poke.types.join(' / ')+'　特性：'+(poke.abilities[0]||'不明')):'どうする？'; $('moveMenu').style.display='none'; updateBars(); updateMoveButtons(); requestAnimationFrame(battleLoop)}
+function startBattle(isBoss){let name=isBoss?worlds[w].boss:chooseEncounter();
+  const apiName=isBoss?(BOSS_API_NAMES[name]||name):name; if(isBoss&&w===worlds.length-1){name=battleIndex<finalGuardians.length?finalGuardians[battleIndex]:worlds[w].boss} const base=isBoss?worlds[w].bossLv:Math.min(35+w*7, worlds[w].bossLv-4);const gBoost=karma<=-6?Math.min(18,Math.floor(Math.abs(karma)*1.2)):0; const lv=base+gBoost; battle={name,lv,isBoss,hp:100,max:100,playerHp:100,mood:isBoss?'門を守っている。':'こちらを警戒している。',last:Date.now(),puzzleIndex:0,puzzle:isBoss?nushiPuzzle(w):null,atOne:false}; $('battle').style.display='block'; $('exploreActions').style.display='none'; $('enemyName').textContent=((isBoss&&w===worlds.length-1&&battleIndex<finalGuardians.length)?'野生の':(isBoss?'ヌシ・':'野生の'))+displayName; $('enemyLevel').textContent='Lv '+lv; $('enemyMood').textContent=battle.mood; $('battleMessage').textContent=poke?('タイプ：'+poke.types.join(' / ')+'　特性：'+(poke.abilities[0]||'不明')):'どうする？'; $('moveMenu').style.display='none'; updateBars(); updateMoveButtons(); requestAnimationFrame(battleLoop)}
 function updateBars(){if(!battle)return;$('enemyFill').style.width=Math.max(0,battle.hp)+'%';$('playerFill').style.width=Math.max(0,battle.playerHp)+'%'}
-function updateMoveButtons(){
+async function updateMoveButtons(){
   const buttons=[...$('moveMenu').querySelectorAll('button')];
   const moves=(battle?.api?.moves||[]).slice(0,4);
-  buttons.forEach((b,i)=>{b.textContent=moves[i]||['たいあたり','かみつく','つばめがえし','まもる'][i];b.dataset.apiMove=moves[i]||'';});
+  buttons.forEach((b,i)=>{
+    const move=moves[i];
+    b.dataset.apiMove=move||'';
+    b.onclick=()=>useMove(move||['tackle','bite','aerial-ace','protect'][i],8+i*3);
+    b.textContent=move||['tackle','bite','aerial-ace','protect'][i];
+  });
+  await Promise.all(buttons.map(async (b,i)=>{
+    const move=moves[i]; if(!move)return;
+    try{
+      const res=await fetch(POKEAPI_BASE+'/move/'+encodeURIComponent(move));
+      if(!res.ok)return;
+      const data=await res.json();
+      const ja=data.names?.find(x=>x.language?.name==='ja');
+      if(ja)b.textContent=ja.name;
+    }catch{}
+  }));
 }
 function fightMenu(){ $('moveMenu').style.display=$('moveMenu').style.display==='grid'?'none':'grid'}
 async function useMove(move,damage){
   if(!battle)return;
   $('moveMenu').style.display='none';
-  const apiMove=battle.api?.moves?.includes(move)?move:null;
+  const apiMove=move&&battle.api?.moves?.includes(move)?move:null;
   let power=damage;
   if(apiMove){
     try{
