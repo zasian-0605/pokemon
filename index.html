@@ -134,7 +134,6 @@ function inspectEnemy(){if(!battle)return;karma++;battle.mood='観察されて�
 function talkEnemy(){if(!battle)return;karma+=2;const lines=battle.isBoss?['ヌシは主人公をじっと見た。','ヌシは「力だけで来る者とは違うな」と呟いた。','ヌシの警戒が少し薄れた。']:['ポケモンは「……少しなら話してもいい」と答えた。','ポケモンは主人公の話を聞いている。','ポケモンは少しだけ警戒を解いた。'];$('battleMessage').textContent=lines[Math.floor(Math.random()*lines.length)];if(battle.isBoss&&karma>=6){setTimeout(()=>finishBoss(),700)}else enemyTurn()}
 function itemAction(){if(!battle)return;battle.playerHp=Math.min(100,battle.playerHp+25);karma++;$('battleMessage').textContent='木の実を食べてHPが25回復した。';updateBars();enemyTurn()}
 function finishBattle(escaped){if(!battle)return;const name=battle.name;if(escaped){log('戦闘を終えて、ポケモンは去っていった。')}else{defeated++;log(name+'を倒した。世界の空気が少し変わった。');} battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid';render()}
-function finishBoss(){const name=battle.name;const isFinal=w===worlds.length-1; caught.push(name); defeated++; battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid'; log('門番のヌシ '+name+' は最後の1で力尽きた。捕獲できるようになった！'+(isFinal?' そして最終門が開いた。':' 次の門が開いた。')); if(!isFinal){w++;pos={x:50,y:72}}else{log('最終門が開いた。伝説のポケモンが住む世界へ進める。')} render()}
 function talkNearby(){karma+=2;log('近くのポケモンが振り返った。「こんにちは。ここでは誰も誰かの主人じゃないよ。」');render()}
 function inspectWorld(){karma+=1;log('調べる：この世界には人間がいない。ポケモンたちが自分の意思で暮らしている。');render()}
 function rest(){karma+=1;log('草むらで少し休んだ。遠くからポケモンの声が聞こえる。');render()}
