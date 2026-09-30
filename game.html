@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Pokémon Wild World</title>
+<style>
+:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#eef2ff;background:#08111f}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(circle at top,#1c3150,#08111f 65%);display:grid;place-items:center}
+button{border:0;border-radius:12px;padding:11px 14px;font-weight:800;cursor:pointer;background:#263b59;color:#fff}button:hover{filter:brightness(1.15)}button:disabled{opacity:.45;cursor:not-allowed}
+#game{width:min(1100px,97vw);min-height:720px;background:#0e1726;border:1px solid #31435c;border-radius:22px;overflow:hidden;box-shadow:0 30px 90px #0009;position:relative}
+#start{position:absolute;inset:0;background:linear-gradient(#0a1423ee,#0b1526f7);z-index:20;display:grid;place-items:center;padding:30px}
+.start-card{width:min(760px,95%);background:#101d31;border:1px solid #3b516f;border-radius:22px;padding:28px;text-align:center}
+.start-card h1{font-size:38px;margin:0 0 8px}.sub{color:#9fb1c9}.starter-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin:22px 0}.starter{padding:18px;border:1px solid #415a7d;background:#16253b;border-radius:18px;text-align:left}.starter.active{outline:3px solid #67e8f9;background:#18304c}.starter img{width:90px;height:90px;display:block;object-fit:contain;margin:auto}.starter .jp{font-size:18px;font-weight:900}.starter .meta{font-size:12px;color:#9fb1c9;margin-top:4px}
+header{padding:16px 20px;border-bottom:1px solid #2b3a52;display:flex;justify-content:space-between;gap:16px;align-items:center}.title{font-weight:900;font-size:20px}.badge{padding:7px 12px;border-radius:999px;background:#1a2a41;font-size:12px;font-weight:900}
+main{display:grid;grid-template-columns:1.4fr .9fr;gap:14px;padding:14px}.panel{background:#0b1525;border:1px solid #293a54;border-radius:16px;padding:14px}
+#world{height:450px;border-radius:14px;position:relative;overflow:hidden;background:linear-gradient(#74a85b,#5f934b);border:2px solid #304d31}
+#world:before{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 0 18%,#c6a96c 18% 28%,transparent 28% 48%,#c6a96c 48% 58%,transparent 58% 80%,#c6a96c 80% 88%,transparent 88%),linear-gradient(0deg,transparent 0 35%,#c6a96c 35% 49%,transparent 49% 73%,#c6a96c 73% 81%,transparent 81%);opacity:.7}
+.patch{position:absolute;background:#47763d;border-radius:20px;box-shadow:inset 0 0 0 2px #356030}.tree{position:absolute;width:26px;height:26px;background:#2f5e34;border-radius:50%;box-shadow:0 9px 0 -3px #715335}.player{position:absolute;width:26px;height:26px;border-radius:9px;background:#f8fafc;border:3px solid #4f46e5;transform:translate(-50%,-50%);z-index:4;box-shadow:0 5px 10px #0005}.other{position:absolute;width:22px;height:22px;border-radius:7px;background:#fef3c7;border:2px solid #f97316;transform:translate(-50%,-50%);z-index:3}
+#worldInfo{display:flex;justify-content:space-between;gap:10px;margin-bottom:10px}.small{font-size:12px;color:#9fb1c9}.stat{display:flex;gap:8px;flex-wrap:wrap}.chip{padding:5px 8px;border-radius:999px;background:#17263c;font-size:12px}
+#log{min-height:88px;line-height:1.6;color:#e8eefc}.actions{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-top:10px}
+#battle{display:none}.battle-grid{display:grid;gap:10px}.battle-head{display:flex;justify-content:space-between;align-items:end}.name{font-size:20px;font-weight:900}.hp{height:12px;border-radius:99px;overflow:hidden;background:#26384f}.hp>i{display:block;height:100%;background:#4ade80;width:100%;transition:width .2s}.arena{height:180px;position:relative;background:#030811;border:1px solid #2d405d;border-radius:14px;overflow:hidden}.soul{position:absolute;width:16px;height:16px;background:#fb7185;transform:translate(-50%,-50%) rotate(45deg);box-shadow:0 0 15px #fb718588}.bullet{position:absolute;width:10px;height:10px;border-radius:50%;background:#e2e8f0;box-shadow:0 0 10px #fff6}
+.moves{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}.battle-menu{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+#online{margin-top:12px}.chat{height:110px;overflow:auto;background:#050b14;border:1px solid #293a54;border-radius:10px;padding:8px;line-height:1.45}.chatrow{display:flex;gap:8px;margin-top:8px}.chatrow input{flex:1;min-width:0;background:#0d192a;color:#fff;border:1px solid #405471;border-radius:10px;padding:10px}
+@media(max-width:800px){main{grid-template-columns:1fr}#world{height:360px}.starter-grid{grid-template-columns:1fr}.battle-menu{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div id="game">
+<div id="start">
+  <div class="start-card">
+    <h1>Pokémon Wild World</h1>
+    <div class="sub">人間として世界を歩き、野生のポケモンと出会う。</div>
+    <div class="starter-grid" id="starters"></div>
+    <button id="startBtn" disabled>このポケモンと冒険を始める</button>
+    <div class="small" style="margin-top:12px">PokeAPIのローカルデータを優先して読み込みます。</div>
+  </div>
+</div>
+<header><div><div class="title">Pokémon Wild World</div><div id="area" class="small">始まりの草原</div></div><div id="route" class="badge">B ROUTE</div></header>
+<main>
+<section>
+  <div class="panel">
+    <div id="worldInfo"><div><b id="areaName">始まりの草原</b><div class="small">WASD / 矢印キーで移動</div></div><div class="stat"><span class="chip">主人公 Lv <b id="playerLv">10</b></span><span class="chip">行動値 <b id="karma">0</b></span></div></div>
+    <div id="world">
+      <div class="patch" style="left:6%;top:10%;width:21%;height:24%"></div><div class="patch" style="left:58%;top:8%;width:24%;height:22%"></div><div class="patch" style="left:27%;top:58%;width:22%;height:27%"></div><div class="patch" style="left:77%;top:60%;width:15%;height:25%"></div>
+      <div class="tree" style="left:4%;top:45%"></div><div class="tree" style="left:91%;top:38%"></div><div class="tree" style="left:70%;top:88%"></div>
+      <div id="others"></div><div id="player" class="player" style="left:50%;top:75%"></div>
+    </div>
+    <div class="panel" style="margin-top:10px"><div id="log">PokeAPIデータを準備中……</div></div>
+    <div class="actions">
+      <button id="talkBtn">近くのポケモンと話す</button><button id="inspectBtn">世界を調べる</button><button id="gateBtn">門のヌシに挑戦</button><button id="routeBtn">ルート情報</button>
+    </div>
+  </div>
+  <div id="online" class="panel">
+    <b>オンライン</b><div class="small">同じ部屋の人間プレイヤーと移動・チャット。</div>
+    <div class="chat" id="chat"></div>
+    <div class="chatrow"><input id="chatInput" maxlength="120" placeholder="チャット"><button id="chatSend">送信</button><button id="onlineBtn">接続</button></div>
+  </div>
+</section>
+<section>
+  <div id="battle" class="panel">
+    <div class="battle-grid">
+      <div class="battle-head"><div><div class="name" id="enemyName">野生のポケモン</div><div class="small" id="enemyMeta">Lv 30</div></div><div style="width:180px"><div class="small">HP</div><div class="hp"><i id="enemyHp"></i></div></div></div>
+      <div id="mood" class="small"></div>
+      <div id="arena"><div id="soul" class="soul" style="left:50%;top:50%"></div></div>
+      <div class="battle-head"><div><div class="name">主人公</div><div class="small">Lv <span id="battleLv">10</span></div></div><div style="width:180px"><div class="small">HP</div><div class="hp"><i id="playerHp"></i></div></div></div>
+      <div id="battleLog">どうする？</div>
+      <div class="battle-menu"><button data-action="fight">たたかう</button><button data-action="run">にげる</button><button data-action="inspect">しらべる</button><button data-action="talk">はなす</button><button data-action="item">どうぐ</button></div>
+      <div id="moves" class="moves"></div>
+    </div>
+  </div>
+  <div class="panel">
+    <b>現在の相棒</b>
+    <div id="partnerCard" style="display:flex;gap:12px;align-items:center;margin-top:10px"><img id="partnerImg" width="76" height="76" style="object-fit:contain"><div><div id="partnerName" class="name"></div><div id="partnerTypes" class="small"></div></div></div>
+  </div>
+  <div class="panel">
+    <b>PokeAPI状態</b><div id="apiState" class="small" style="margin-top:8px">確認中…</div>
+    <div id="dexState" class="small" style="margin-top:4px"></div>
+  </div>
+</section>
+</main>
+</div>
+<script src="./game-data.js"></script>
+<script>
+const areas=[
+ {name:"始まりの草原",lv:30,boss:"garchomp",types:["normal","grass","bug"],jp:"原生の覇者"},
+ {name:"深緑の森",lv:38,boss:"venusaur",types:["grass","bug","poison","fairy"],jp:"森の古王"},
+ {name:"蒼海の島",lv:46,boss:"kingler",types:["water","flying","ice"],jp:"深海の王"},
+ {name:"灼熱砂漠",lv:54,boss:"tyranitar",types:["ground","rock","fire"],jp:"砂塵の巨獣"},
+ {name:"極寒の雪原",lv:62,boss:"abomasnow",types:["ice","dark","steel"],jp:"氷河の守護者"},
+ {name:"太古の化石地帯",lv:70,boss:"aerodactyl",types:["rock","flying","dragon"],jp:"太古の王"},
+ {name:"ヒスイ原野",lv:78,boss:"samurott-hisui",types:["water","dark","ground","fighting"],jp:"ヒスイの守護者"},
+ {name:"古代パラドックス領域",lv:86,boss:"roaring-moon",types:["dragon","dark","rock"],jp:"古代の覇者"},
+ {name:"未来パラドックス都市",lv:94,boss:"iron-thorns",types:["electric","steel"],jp:"未来の機械王"},
+ {name:"災厄の遺跡",lv:102,boss:"kingambit",types:["dark","ghost","poison"],jp:"災厄の使徒"},
+ {name:"時空の裂け目",lv:110,boss:"metagross",types:["psychic","steel","dragon"],jp:"時空の異形"},
+ {name:"終焉の世界",lv:120,boss:"rayquaza",types:["dragon","flying","legendary"],jp:"終焉の門"}
+];
+const finalGuardians=["mewtwo","rayquaza","necrozma","zacian","giratina-origin"];
+const state={area:0,pos:{x:50,y:75},karma:0,partner:null,battle:null,guardianIndex:0,online:false,ws:null,players:new Map(),exploreSeed:0};
+const $=id=>document.getElementById(id);
+function log(t){$("log").textContent=t}
+function route(){return state.karma>=6?"N":state.karma<=-6?"G":"B"}
+function render(){
+ $("area").textContent=areas[state.area].name;$("areaName").textContent=areas[state.area].name;$("playerLv").textContent=10+state.area*4;$("battleLv").textContent=10+state.area*4;$("karma").textContent=state.karma;
+ $("route").textContent=route()+" ROUTE";$("player").style.left=state.pos.x+"%";$("player").style.top=state.pos.y+"%";
+}
+function addChat(t){$("chat").insertAdjacentHTML("beforeend","<div>"+String(t).replace(/[<>]/g,"")+"</div>");$("chat").scrollTop=$("chat").scrollHeight}
+function chooseStarter(){
+ const data=[["bulbasaur","フシギダネ"],["charmander","ヒトカゲ"],["squirtle","ゼニガメ"]];
+ const box=$("starters");
+ for(const item of data){
+   const p=PokeData.state.byName.get(item[0]);
+   const div=document.createElement("button");div.className="starter";div.dataset.name=item[0];
+   div.innerHTML="<img src='https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/"+(p?p.id:"0")+".png'><div class='jp'>"+item[1]+"</div><div class='meta'>"+(p?(p.types||[]).join(" / "):"読み込み中")+"</div>";
+   div.onclick=()=>{document.querySelectorAll(".starter").forEach(x=>x.classList.remove("active"));div.classList.add("active");state.partner=p;state.partnerJP=item[1];$("startBtn").disabled=!p};
+   box.appendChild(div);
+ }
+}
+function showPartner(){
+ if(!state.partner)return;
+ $("partnerImg").src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/"+state.partner.id+".png";
+ $("partnerName").textContent=state.partner.jpName||state.partnerJP||state.partner.name;$("partnerTypes").textContent=(state.partner.types||[]).join(" / ");
+}
+async function boot(){
+ try{
+   await PokeData.init();
+   const s=PokeData.state;
+   $("apiState").textContent=s.source==="local"?"LOCAL: PokeAPI静的データを使用":"REMOTE FALLBACK: PokeAPI APIを使用";
+   $("dexState").textContent="ポケモン "+s.pokemon.length+"種／技 "+s.moves.size+"種／フォルム "+s.forms.length+"種";
+   chooseStarter();log("PokeAPIデータの準備完了。最初の相棒を選んでください。");
+ }catch(e){$("apiState").textContent="PokeAPIデータの読み込みに失敗";log("データ準備に失敗しました。");}
+}
+function start(){
+ $("start").style.display="none";showPartner();log("冒険開始！ 草むらや世界を歩いて、野生のポケモンを探そう。");render();
+}
+$("startBtn").onclick=start;
+function maybeEncounter(){
+ if(Math.random()>0.13||state.battle)return;
+ const a=areas[state.area],p=PokeData.random(x=>x.speciesInfo?!x.speciesInfo.isLegendary&&!x.speciesInfo.isMythical:true);
+ if(p) beginBattle(false,p);
+}
+function move(dx,dy){
+ if(state.battle)return;
+ state.pos.x=Math.max(3,Math.min(97,state.pos.x+dx));state.pos.y=Math.max(4,Math.min(96,state.pos.y+dy));render();
+ if(state.online&&state.ws&&state.ws.readyState===1)state.ws.send(JSON.stringify({type:"move",x:state.pos.x,y:state.pos.y}));
+ if(state.pos.x<30&&state.pos.y<42||state.pos.x>58&&state.pos.y<38)maybeEncounter();
+}
+document.addEventListener("keydown",e=>{
+ const k=e.key.toLowerCase();
+ if(k==="arrowup"||k==="w")move(0,-4); else if(k==="arrowdown"||k==="s")move(0,4); else if(k==="arrowleft"||k==="a")move(-4,0); else if(k==="arrowright"||k==="d")move(4,0);
+ if(state.battle){battleKey(e)}
+});
+function battleKey(e){
+ const s=$("soul");let x=parseFloat(s.style.left),y=parseFloat(s.style.top);let changed=false;
+ if(e.key==="ArrowUp"||e.key.toLowerCase()==="w"){y-=6;changed=true}if(e.key==="ArrowDown"||e.key.toLowerCase()==="s"){y+=6;changed=true}if(e.key==="ArrowLeft"||e.key.toLowerCase()==="a"){x-=6;changed=true}if(e.key==="ArrowRight"||e.key.toLowerCase()==="d"){x+=6;changed=true}
+ if(changed){e.preventDefault();s.style.left=Math.max(5,Math.min(95,x))+"%";s.style.top=Math.max(5,Math.min(95,y))+"%"}
+}
+function typeBonus(moveType,defTypes){
+ return  PokeData.multiplier(moveType,defTypes);
+}
+async function setupBattleMoves(){
+ const p=state.battle.api;const names=PokeData.movesFor(p,state.battle.lv);
+ $("moves").innerHTML="";
+ for(const n of names){
+   const b=document.createElement("button");const m=await PokeData.move(n);
+   b.textContent=(m&&m.jpName)||n;b.onclick=()=>useMove(n,m);$("moves").appendChild(b);
+ }
+}
+function beginBattle(isBoss,raw){
+ let p=raw;
+ if(isBoss){p=PokeData.state.byName.get(raw)||PokeData.state.byName.get(String(raw).toLowerCase())}
+ if(!p)return;
+ const lv=isBoss?areas[state.area].lv:Math.max(12+state.area*5,Math.min(areas[state.area].lv-4,22+state.area*6));
+ const maxHp=Math.max(60,40+((p.stats&&p.stats.hp)||60)+Math.floor(lv/2));
+ state.battle={isBoss,p,lv,hp:maxHp,maxHp,playerHp:120,playerMaxHp:120,atOne:false,puzzleIndex:0,puzzle:["run","run","talk","inspect"],moves:[]};
+ $("battle").style.display="block";$("enemyName").textContent=(isBoss?"ヌシ・":"野生の")+(p.jpName||p.name);$("enemyMeta").textContent="Lv "+lv+"　"+(p.types||[]).join(" / ");$("mood").textContent=isBoss?"門を守る野生の強者。":"こちらを警戒している。";$("moves").innerHTML="";$("battleLog").textContent="どうする？";updateBattleHP();setupBattleMoves();
+}
+function updateBattleHP(){if(!state.battle)return;$("enemyHp").style.width=(Math.max(0,state.battle.hp/state.battle.maxHp)*100)+"%";$("playerHp").style.width=(Math.max(0,state.battle.playerHp/state.battle.playerMaxHp)*100)+"%"}
+async function useMove(name,m){
+ const b=state.battle;if(!b)return;
+ $("moves").innerHTML="";
+ let power=m&&m.power?m.power:40;let mult=typeBonus(m?m.type:"normal",b.p.types||[]);
+ const atk=(b.p.stats&&b.p.stats.attack)||70;const dmg=Math.max(2,Math.round((power/12+atk/100)*mult*8));
+ b.hp=Math.max(0,b.hp-dmg);state.karma--;
+ $("battleLog").textContent=(m&&m.jpName||name)+"！ "+dmg+"ダメージ"+(mult>1?" 効果はばつぐん！":mult===0?" 効果がないようだ……":"");
+ if(b.hp<=1&&b.isBoss){b.hp=1;b.atOne=true;$("battleLog").textContent+=" ヌシはHP1で耐えた。ここからは行動順のパズルだ。";updateBattleHP();render();return}
+ if(b.hp<=0){finishBattle(false);return}
+ updateBattleHP();enemyTurn();
+}
+function enemyTurn(){
+ const b=state.battle;if(!b)return;let count=route()==="G"&&Math.random()<.55?2:1;let total=0;
+ for(let i=0;i<count;i++){total+=6+Math.floor(Math.random()*8)+Math.floor(b.lv/12);if(Math.random()<.7)spawnBullet()}
+ b.playerHp=Math.max(0,b.playerHp-total);$("battleLog").textContent+=(count>1?"連続攻撃！ ":"")+"野生の"+(b.p.jpName||b.p.name)+"の攻撃。 "+total+"ダメージ。";
+ updateBattleHP();if(b.playerHp<=0){b.playerHp=b.playerMaxHp;state.karma++;setTimeout(()=>finishBattle(true),350)}
+}
+function spawnBullet(){const a=$("arena"),d=document.createElement("div");d.className="bullet";d.style.left=(7+Math.random()*86)+"%";d.style.top=(8+Math.random()*84)+"%";a.appendChild(d);setTimeout(()=>d.remove(),500)}
+function action(a){
+ const b=state.battle;if(!b)return;
+ if(b.isBoss&&b.atOne){
+   const expected=b.puzzle[b.puzzleIndex];
+   if(a===expected){b.puzzleIndex++;$("battleLog").textContent="正しい行動…… "+b.puzzleIndex+"/"+b.puzzle.length;if(b.puzzleIndex>=b.puzzle.length){finishBoss();return}}
+   else{b.puzzleIndex=0;$("battleLog").textContent="違う。ヌシは警戒した。最初からやり直し。"}
+   return;
+ }
+ if(a==="fight"){return}
+ if(a==="run"){if(!b.isBoss&&Math.random()<(route()==="G"?.35:.72)){state.karma++;finishBattle(true)}else{state.karma--;$("battleLog").textContent="逃げられない！";enemyTurn()}return}
+ if(a==="inspect"){state.karma++;$("battleLog").textContent=(b.p.jpName||b.p.name)+"：タイプ "+(b.p.types||[]).join(" / ")+"、特性 "+((b.p.abilities||[])[0]||"不明");$("mood").textContent="観察されて、少し落ち着いた。";return}
+ if(a==="talk"){state.karma+=2;const lines=b.isBoss?["ヌシはじっとこちらを見る。","ヌシは話を聞いている。","門の向こうへ進む理由を考えているようだ。"]:["ポケモンは声を返した。","ポケモンは少しだけ警戒を解いた。","ポケモンは近くの仲間を呼んだ。"];$("battleLog").textContent=lines[Math.floor(Math.random()*lines.length)];enemyTurn();return}
+ if(a==="item"){b.playerHp=Math.min(b.playerMaxHp,b.playerHp+28);state.karma++;$("battleLog").textContent="木の実でHPが28回復。";updateBattleHP();enemyTurn();}
+}
+document.querySelectorAll(".battle-menu button").forEach(b=>b.onclick=()=>{const a=b.dataset.action;if(a==="fight")$("moves").style.display=$("moves").style.display==="grid"?"none":"grid";action(a)});
+function finishBattle(escaped){const b=state.battle;if(!b)return;log(escaped?"戦闘を終えて、ポケモンは去っていった。":(b.p.jpName||b.p.name)+"との戦いが終わった。");state.battle=null;$("battle").style.display="none";$("moves").innerHTML="";render()}
+function finishBoss(){
+ const b=state.battle;
+ if(state.area===areas.length-1&&state.guardianIndex<finalGuardians.length){state.guardianIndex++;state.battle=null;$("battle").style.display="none";setTimeout(()=>beginBattle(true,finalGuardians[state.guardianIndex]),400);return}
+ const name=b.p.jpName||b.p.name;state.area=Math.min(areas.length-1,state.area+1);state.pos={x:50,y:75};state.battle=null;$("battle").style.display="none";log("ヌシ "+name+" は人に従っていない野生の門番だった。道が開いた！");render()
+}
+$("gateBtn").onclick=()=>{const boss=state.area===areas.length-1?finalGuardians[state.guardianIndex]||areas[state.area].boss:areas[state.area].boss;beginBattle(true,boss)}
+$("talkBtn").onclick=()=>{state.karma+=2;log("近くのポケモンが「こんにちは」と声を返した。ここではポケモンも自分の意思で生きている。");render()}
+$("inspectBtn").onclick=()=>{const s=PokeData.state;state.karma++;log("世界データ：ポケモン "+s.pokemon.length+"種、技 "+s.moves.size+"種、フォルム "+s.forms.length+"種をローカルデータから利用中。");render()}
+$("routeBtn").onclick=()=>{const r=route();log(r==="N"?"N寄り：会話・観察の行動が多い。":r==="G"?"G寄り：戦闘が多く、敵の連続攻撃が増える。":"B：戦い方でルートが変化する。")}
+function connectOnline(){
+ if(state.online){state.ws.close();return}
+ const proto=location.protocol==="https:"?"wss":"ws";const ws=new WebSocket(proto+"://"+location.host);state.ws=ws;
+ ws.onopen=()=>{state.online=true;$("onlineBtn").textContent="切断";ws.send(JSON.stringify({type:"join",name:"プレイヤー"}));addChat("システム：オンライン接続");}
+ ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==="joined"){m.room.players.forEach(p=>state.players.set(p.id,p));renderOthers();addChat("ルーム："+m.room.id)}if(m.type==="player_joined"){state.players.set(m.player.id,m.player);renderOthers()}if(m.type==="player_moved"){const p=state.players.get(m.player.id);if(p){p.x=m.player.x;p.y=m.player.y;renderOthers()}}if(m.type==="player_left"){state.players.delete(m.playerId);renderOthers()}if(m.type==="chat")addChat(m.name+"："+m.text)}
+ ws.onclose=()=>{state.online=false;$("onlineBtn").textContent="接続";state.players.clear();renderOthers()}
+}
+function renderOthers(){const o=$("others");o.innerHTML="";for(const p of state.players.values()){const d=document.createElement("div");d.className="other";d.style.left=p.x+"%";d.style.top=p.y+"%";d.title=p.name;o.appendChild(d)}}
+$("onlineBtn").onclick=connectOnline;$("chatSend").onclick=()=>{const i=$("chatInput"),t=i.value.trim();if(t&&state.ws&&state.ws.readyState===1){state.ws.send(JSON.stringify({type:"chat",text:t}));i.value=""}};$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("chatSend").click()});
+boot();
+</script>
+</body>
+</html>
