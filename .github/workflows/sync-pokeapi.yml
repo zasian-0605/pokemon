@@ -1,32 +1,34 @@
-name: Sync PokeAPI data
+name: Build local PokeAPI data
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - data/**
   schedule:
-    - cron: '0 18 * * 0'
+    - cron: "0 18 * * 0"
 
 permissions:
   contents: write
 
 jobs:
-  sync:
+  build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout game
         uses: actions/checkout@v4
 
-      - name: Download PokeAPI data
-        run: |
-          rm -rf data
-          git clone --depth 1 https://github.com/PokeAPI/api-data.git data
+      - name: Clone PokeAPI static data
+        run: git clone --depth 1 https://github.com/PokeAPI/api-data.git .pokeapi
 
-      - name: Remove git metadata
-        run: rm -rf data/.git
+      - name: Build compact game data
+        run: node scripts/build-poke-data.mjs
 
-      - name: Commit data
+      - name: Commit generated data
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
-          git diff --cached --quiet || git commit -m "Add PokeAPI data"
+          git diff --cached --quiet || git commit -m "Update local PokeAPI data"
           git push
