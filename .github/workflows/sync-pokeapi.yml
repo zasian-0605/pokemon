@@ -1,0 +1,30 @@
+name: Sync PokeAPI data
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download PokeAPI data
+        run: |
+          rm -rf data
+          git clone --depth 1 https://github.com/PokeAPI/api-data.git data
+
+      - name: Remove git metadata
+        run: rm -rf data/.git
+
+      - name: Commit data
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "Add PokeAPI data"
+          git push
