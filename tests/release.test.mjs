@@ -16,7 +16,7 @@ test("package is valid",()=>{
 });
 test("html references only current client",()=>{
   const html=fs.readFileSync(path.join(root,"index.html"),"utf8");
-  assert.match(html,/src="\/game\.js"/);assert.match(html,/href="\/styles\.css"/);
+  assert.match(html,/src="\/game\.js"/);assert.match(html,/href="\/styles\.css"/);assert.match(html,/introCanvas/);assert.match(html,/introSpeaker/);
   assert.doesNotMatch(html,/game-data\.js|pokeapi\.js/);
 });
 test("client/server contracts are present",()=>{
