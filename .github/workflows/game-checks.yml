@@ -16,3 +16,11 @@ jobs:
       - run: npm test
       - run: node --check game.js
       - run: node --check server.js
+      - name: Start local game server
+        run: node server.js > /tmp/pokemon-server.log 2>&1 &
+      - name: Start Chromium
+        run: |
+          CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
+          "$CHROME" --headless --no-sandbox --disable-gpu --remote-debugging-port=9222 --user-data-dir=/tmp/pokemon-chrome about:blank > /tmp/pokemon-chrome.log 2>&1 &
+          sleep 2
+      - run: node tests/browser-smoke.mjs
