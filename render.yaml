@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: pokemon-wild-world
+    name: monster-veil
     runtime: node
     plan: free
-    buildCommand: npm install
+    buildCommand: npm install --no-audit --no-fund
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
