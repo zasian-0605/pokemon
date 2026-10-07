@@ -86,7 +86,7 @@ function drawIntro(timeNow=performance.now()){
   // player
   const p={x:220,y:355};ctx.fillStyle="#45515a";ctx.beginPath();ctx.ellipse(p.x,p.y+38,18,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f2c6a3";ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fill();ctx.fillStyle="#284f88";ctx.fillRect(p.x-14,p.y-15,28,10);ctx.fillStyle="#f2f5f7";ctx.fillRect(p.x-12,p.y+11,24,27);ctx.fillStyle="#386aa5";ctx.fillRect(p.x-10,p.y+35,7,16);ctx.fillRect(p.x+3,p.y+35,7,16);
   // professor: walks from far bank into shallow water, then toward player
-  const elapsed=performance.now()-introState.start;
+  const elapsed=Math.floor((performance.now()-introState.start)/ANIM_STEP)*ANIM_STEP;
   const p1=Math.min(1,elapsed/1800),p2=Math.min(1,Math.max(0,(elapsed-1800)/1300));
   const profX=780-(p1*115)-(p2*120),profY=110+(p1*85)+(p2*125),walk=Math.floor(elapsed/160)%2;
   ctx.fillStyle="#40505a";ctx.beginPath();ctx.ellipse(profX,profY+42,19,7,0,0,Math.PI*2);ctx.fill();
@@ -94,7 +94,7 @@ function drawIntro(timeNow=performance.now()){
   const inPond=profX>500&&profX<860&&profY>90&&profY<330;
   if(inPond){
     ctx.strokeStyle="#bce7ea";ctx.lineWidth=2;
-    const rr=16+Math.sin(elapsed/180)*5;ctx.beginPath();ctx.ellipse(profX,profY+30,rr,rr*.38,0,0,Math.PI*2);ctx.stroke();
+    const rr=stepped([14,18,22,18,14,10],animFrame(elapsed));ctx.beginPath();ctx.ellipse(profX,profY+30,rr,rr*.38,0,0,Math.PI*2);ctx.stroke();
     ctx.beginPath();ctx.ellipse(profX,profY+30,rr+10,rr*.48,0,0,Math.PI*2);ctx.stroke();
     if(Math.floor(elapsed/120)%3===0){ctx.fillStyle="#fff";ctx.fillRect(profX-18,profY+20,4,5);ctx.fillRect(profX+14,profY+18,4,5)}
   }
@@ -171,38 +171,41 @@ function drawGrassTile(ctx,x,y,tileX,tileY,time=0){
   if(r>.67){pxRect(ctx,x+14+sway,y+22,2,3,"#497f47");pxRect(ctx,x+13+sway,y+21,4,2,"#568f4d")}
   if(r<.09){pxRect(ctx,x+3-sway,y+6,2,2,"#8fc77c");pxRect(ctx,x+25-sway,y+14,2,2,"#8fc77c")}
 }
-function drawPathTile(ctx,x,y,tileX,tileY){
+function drawPathTile(ctx,x,y,tileX,tileY,time=0){
   const r=seeded(tileX,tileY,21);
   pxRect(ctx,x,y,30,30,r>.72?"#d8bd82":r<.18?"#c9aa70":"#d2b57a");
   pxRect(ctx,x,y,30,2,"#e2ca94");
   pxRect(ctx,x+1,y+28,28,2,"#b7935e");
+  const f=animFrame(time),tw=stepped([0,1,0,-1,0,1],f);
   for(let i=0;i<5;i++){
     const rx=3+Math.floor(seeded(tileX*7+i,tileY*11+i,31)*24);
     const ry=4+Math.floor(seeded(tileX*13+i,tileY*5+i,32)*21);
     const sz=seeded(i,tileY,tileX)>0.55?2:1;
-    pxRect(ctx,x+rx,y+ry,sz,sz,seeded(i+3,tileY,tileX)>.5?"#b19462":"#e7d19a");
+    pxRect(ctx,x+rx+(i&1?tw:0),y+ry,sz,sz,seeded(i+3,tileY,tileX)>.5?"#b19462":"#e7d19a");
   }
 }
-function drawDirtTile(ctx,x,y,tileX,tileY){
+function drawDirtTile(ctx,x,y,tileX,tileY,time=0){
   const r=seeded(tileX,tileY,42);
   pxRect(ctx,x,y,30,30,r>.6?"#a4815f":"#987657");
   pxRect(ctx,x,y,30,2,"#b89269");
+  const f=animFrame(time),dust=stepped([0,0,1,1,0,-1],f);
   for(let i=0;i<7;i++){
     const rx=2+Math.floor(seeded(tileX+i,tileY-i,43)*25);
     const ry=4+Math.floor(seeded(tileX-i,tileY+i,44)*23);
-    pxRect(ctx,x+rx,y+ry,1+Math.floor(seeded(i,tileY,45)*2),1, i%2?"#7d604a":"#c0986f");
+    pxRect(ctx,x+rx+((i%3===0)?dust:0),y+ry,1+Math.floor(seeded(i,tileY,45)*2),1, i%2?"#7d604a":"#c0986f");
   }
 }
-function drawRockTile(ctx,x,y,tileX,tileY){
+function drawRockTile(ctx,x,y,tileX,tileY,time=0){
   const r=seeded(tileX,tileY,55);
   pxRect(ctx,x,y,30,30,r>.5?"#6a6670":"#625e68");
   pxRect(ctx,x,y,30,2,"#817b86");
   pxRect(ctx,x+1,y+28,28,2,"#4f4b54");
   const stones=[[4,5,9,5],[17,4,7,7],[8,16,6,6],[20,18,8,5]];
+  const f=animFrame(time),gl=stepped([0,0,1,1,0,-1],f);
   for(let i=0;i<stones.length;i++){
-    const s=stones[i],c=i%2?"#76717b":"#85808a";
-    pxRect(ctx,x+s[0],y+s[1],s[2],s[3],c);
-    pxRect(ctx,x+s[0]+2,y+s[1]+1,Math.max(2,s[2]-4),2,"#96919a");
+    const st=stones[i],c=i%2?"#76717b":"#85808a";
+    pxRect(ctx,x+st[0],y+st[1],st[2],st[3],c);
+    pxRect(ctx,x+st[0]+2+((i===1)?gl:0),y+st[1]+1,Math.max(2,st[2]-4),2,"#96919a");
   }
 }
 function drawWaterTile(ctx,x,y,tileX,tileY,time=0){
@@ -214,13 +217,14 @@ function drawWaterTile(ctx,x,y,tileX,tileY,time=0){
   pxRect(ctx,x+17-waveB/2,y+18,9,2,"#86ccd0");
   if(r<.25)pxRect(ctx,x+13+stepped([0,1,1,0,-1,-1],frame),y+4,3,2,"#71bec4");
 }
-function drawSnowTile(ctx,x,y,tileX,tileY){
+function drawSnowTile(ctx,x,y,tileX,tileY,time=0){
   const r=seeded(tileX,tileY,77);
   pxRect(ctx,x,y,30,30,r>.45?"#dce7e4":"#d3e0dd");
   pxRect(ctx,x,y,30,2,"#edf5f1");
+  const f=animFrame(time),snow=stepped([0,0,1,1,0,-1],f);
   for(let i=0;i<5;i++){
     const rx=2+Math.floor(seeded(tileX+i,tileY,78)*25),ry=4+Math.floor(seeded(tileX,tileY+i,79)*22);
-    pxRect(ctx,x+rx,y+ry,2,2,"#b9ccc8");
+    pxRect(ctx,x+rx+((i%2)?snow:0),y+ry,2,2,"#b9ccc8");
   }
 }
 function drawFlowerPatch(ctx,x,y,tileX,tileY,time=0){
@@ -347,7 +351,14 @@ function buildFieldStatic(a){
 function drawField(){
   const c=$("field"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=TILE,a=AREA[state.area],now=performance.now(),time=Math.floor(now/ANIM_STEP)*ANIM_STEP;
   ctx.imageSmoothingEnabled=false;ctx.clearRect(0,0,w,h);
-  ctx.drawImage(buildFieldStatic(a),0,0);
+  for(let ty=0;ty<20;ty++)for(let tx=0;tx<30;tx++){
+    const type=terrainAt(a,tx,ty),x=tx*TILE,y=ty*TILE;
+    if(type==="grass")drawGrassTile(ctx,x,y,tx,ty,time);
+    else if(type==="path")drawPathTile(ctx,x,y,tx,ty,time);
+    else if(type==="dirt")drawDirtTile(ctx,x,y,tx,ty,time);
+    else if(type==="rock")drawRockTile(ctx,x,y,tx,ty,time);
+    else if(type==="water")drawWaterTile(ctx,x,y,tx,ty,time);
+  }
   // Dynamic water shimmer and shoreline glints.
   if(a.bg==="water"){drawPond(ctx,600,30,280,210,time);drawPond(ctx,55,335,240,150,time)}
   if(a.bg==="town")drawPond(ctx,485,345,250,145,time);
@@ -388,12 +399,14 @@ function drawField(){
   if(a.west!==null)ctx.fillText("← "+AREA[a.west].name,8,285);
   if(a.east!==null)ctx.fillText(AREA[a.east].name+" →",770,285);
   // Player shadow and sprite.
-  const px=state.pos.x*t+15,py=state.pos.y*t+18;
+  const moveBob=stepped([0,1,0,-1],animFrame(time));
+  const leg=stepped([0,2,0,-2],animFrame(time));
+  const px=state.pos.x*t+15,py=state.pos.y*t+18+moveBob;
   pxRect(ctx,px-12,py+12,24,5,"#34433a");
   pxRect(ctx,px-7,py-18,14,7,"#315c9c");
   pxRect(ctx,px-8,py-11,16,12,"#f6d0ad");
   pxRect(ctx,px-7,py,14,16,"#e9f2f4");
-  pxRect(ctx,px-7,py+13,5,9,"#4772af");pxRect(ctx,px+2,py+13,5,9,"#4772af");
+  pxRect(ctx,px-7,py+13+leg,5,9,"#4772af");pxRect(ctx,px+2,py+13-leg,5,9,"#4772af");
   if(state.area===0){
     pxRect(ctx,17*t+12,12*t+8,24,20,"#5c6470");
     pxRect(ctx,17*t+14,12*t+10,20,15,"#dbe6e8");
@@ -401,19 +414,23 @@ function drawField(){
     ctx.fillStyle="#35444c";ctx.font="bold 10px sans-serif";ctx.fillText("研究所",17*t+8,12*t+50);
   }
 }
-function drawNpc(ctx,x,y,kind){
-  const s=.9;
+function drawNpc(ctx,x,y,kind,time=0){
+  const s=.9,frame=animFrame(time),step=stepped([0,1,0,-1,0,1],frame),blink=(frame===2||frame===3);
   pxRect(ctx,x-13*s,y+18*s,26*s,6*s,"#34423c");
-  pxRect(ctx,x-9*s,y-1*s,18*s,24*s,kind==="professor"?"#e8eef1":"#d6b09f");
-  pxRect(ctx,x-8*s,y+8*s,16*s,14*s,kind==="professor"?"#ffffff":"#2e477a");
-  pxRect(ctx,x-8*s,y-17*s,16*s,8*s,kind==="professor"?"#e8edf0":"#4b2d26");
-  pxRect(ctx,x-7*s,y-9*s,14*s,10*s,"#f2c6a5");
-  pxRect(ctx,x-6*s,y-6*s,2*s,2*s,"#263238");pxRect(ctx,x+4*s,y-6*s,2*s,2*s,"#263238");
-  if(kind==="professor"){
-    pxRect(ctx,x+8*s,y-1*s,5*s,15*s,"#6b7f90");
-    pxRect(ctx,x-16*s,y,7*s,13*s,"#ffffff");
+  pxRect(ctx,x-9*s,y-1*s+step*.2,18*s,24*s,kind==="professor"?"#e8eef1":"#d6b09f");
+  pxRect(ctx,x-8*s,y+8*s+step*.2,16*s,14*s,kind==="professor"?"#ffffff":"#2e477a");
+  pxRect(ctx,x-8*s,y-17*s+step*.2,16*s,8*s,kind==="professor"?"#e8edf0":"#4b2d26");
+  pxRect(ctx,x-7*s,y-9*s+step*.2,14*s,10*s,"#f2c6a5");
+  if(!blink){
+    pxRect(ctx,x-6*s,y-6*s,2*s,2*s,"#263238");pxRect(ctx,x+4*s,y-6*s,2*s,2*s,"#263238");
   }else{
-    pxRect(ctx,x-12*s,y+23*s,6*s,8*s,"#334e7f");pxRect(ctx,x+6*s,y+23*s,6*s,8*s,"#334e7f");
+    pxRect(ctx,x-6*s,y-5*s,3*s,1*s,"#263238");pxRect(ctx,x+3*s,y-5*s,3*s,1*s,"#263238");
+  }
+  if(kind==="professor"){
+    pxRect(ctx,x+8*s,y-1*s+step*.2,5*s,15*s,"#6b7f90");pxRect(ctx,x-16*s,y+step*.2,7*s,13*s,"#ffffff");
+  }else{
+    const leg=frame%2?2:-1;
+    pxRect(ctx,x-12*s,y+23*s+leg,6*s,8*s,"#334e7f");pxRect(ctx,x+6*s,y+23*s-leg,6*s,8*s,"#334e7f");
   }
 }
 
@@ -465,7 +482,18 @@ function startTrainer(name,team,gym,league){state.battle={wild:false,trainerName
 async function startLeague(){const l=LEAGUE[state.leagueIndex];if(!l){state.storyComplete=true;msg("ポケモンリーグ制覇！ 君は新たなチャンピオンになった！");save();return}try{const team=[];for(const [n,lv] of l.team)team.push(await makeMon(n,lv,true));startTrainer(l.name,team,false,true)}catch{}}
 function enemyMon(){return state.battle?.enemyTeam[state.battle.enemyIndex]}
 function playerMon(){return state.party[state.battle?.playerIndex??0]}
-async function renderBattle(){const e=enemyMon(),p=playerMon();if(!e||!p)return;$("battleKind").textContent=state.battle.wild?"野生のポケモン":state.battle.trainerName;$("enemyName").textContent=e.nameJa;$("enemyMeta").textContent="Lv."+e.level+"　"+e.types.join(" / ");$("enemySprite").src=e.sprite;$("playerSprite").src=p.sprite;$("playerMonName").textContent=p.nameJa;$("playerMonMeta").textContent="Lv."+p.level+"　"+p.types.join(" / ");updateBattleBars();buildMoves();buildSwitch();$("movePanel").classList.add("hidden");$("bagPanel").classList.add("hidden");$("switchPanel").classList.add("hidden");$("battleMenu").classList.remove("hidden")}
+async let battleAnimation=0;
+function animateBattleSprites(time){
+  if(state.screen!=="battleScreen"){battleAnimation=0;return}
+  const f=animFrame(time),bob=stepped([0,2,0,-2],f),tilt=stepped([0,0,-1,0],f);
+  const e=$("enemySprite"),p=$("playerSprite");
+  if(e)e.style.marginTop=bob+"px";
+  if(p)p.style.marginTop=(-bob)+"px";
+  if(e)e.style.transform="translateX("+tilt+"px)";
+  if(p)p.style.transform="scaleX(-1) translateX("+(-tilt)+"px)";
+  battleAnimation=requestAnimationFrame(animateBattleSprites);
+}
+function renderBattle(){ensureBattleAnimation();const e=enemyMon(),p=playerMon();if(!e||!p)return;$("battleKind").textContent=state.battle.wild?"野生のポケモン":state.battle.trainerName;$("enemyName").textContent=e.nameJa;$("enemyMeta").textContent="Lv."+e.level+"　"+e.types.join(" / ");$("enemySprite").src=e.sprite;$("playerSprite").src=p.sprite;$("playerMonName").textContent=p.nameJa;$("playerMonMeta").textContent="Lv."+p.level+"　"+p.types.join(" / ");updateBattleBars();buildMoves();buildSwitch();$("movePanel").classList.add("hidden");$("bagPanel").classList.add("hidden");$("switchPanel").classList.add("hidden");$("battleMenu").classList.remove("hidden")}
 function updateBattleBars(){const e=enemyMon(),p=playerMon();$("enemyHpBar").style.width=100*e.currentHp/e.stats.hp+"%";$("enemyHpText").textContent=e.currentHp+" / "+e.stats.hp;$("playerHpBar").style.width=100*p.currentHp/p.stats.hp+"%";$("playerHpText").textContent=p.currentHp+" / "+p.stats.hp}
 function buildMoves(){const box=$("movePanel");box.innerHTML="";const p=playerMon();p.moves.forEach((m,i)=>{const b=document.createElement("button");b.textContent=(m.nameJa||m.name)+"  "+m.pp+"/"+m.maxPp;b.disabled=m.pp<=0;b.onclick=()=>turn(i);box.appendChild(b)})}
 function buildSwitch(){const box=$("switchPanel");box.innerHTML="";state.party.forEach((p,i)=>{const b=document.createElement("button");b.textContent=p.nameJa+" Lv."+p.level;b.disabled=i===state.battle?.playerIndex||p.currentHp<=0;b.onclick=()=>switchPokemon(i);box.appendChild(b)});const back=document.createElement("button");back.textContent="もどる";back.onclick=()=>{$("switchPanel").classList.add("hidden");$("battleMenu").classList.remove("hidden")};box.appendChild(back)}
@@ -551,6 +579,7 @@ async function openDex(){
 }
 function buildBagModal(){$("dialogContent").innerHTML="<h2>バッグ</h2><div class='bag-row'><span>キズぐすり</span><b>"+state.items.potion+"</b></div><div class='bag-row'><span>すごいキズぐすり</span><b>"+state.items.superpotion+"</b></div><div class='bag-row'><span>モンスターボール</span><b>"+state.items.pokeball+"</b></div><div class='bag-row'><span>ボックス</span><b>"+state.box.length+"</b></div>";$("dialogModal").classList.remove("hidden")}
 function openMap(){let html="<h2>マップ</h2>";AREA.forEach((a,i)=>html+="<p>"+(i===state.area?"▶ ":"")+(i<=state.badges+1?a.name:a.name+"（未開放）")+"</p>");$("dialogContent").innerHTML=html;$("dialogModal").classList.remove("hidden")}
+function ensureBattleAnimation(){if(!battleAnimation)battleAnimation=requestAnimationFrame(animateBattleSprites)}
 function setupButtons(){
   $("newGame").onclick=startIntro;$("introNext").onclick=introAdvance;$("skipIntro").onclick=skipIntro;$("loadGame").onclick=()=>{if(load()){show("gameScreen");renderAll();msg("セーブデータを読み込みました。")}else show("starterScreen")};$("saveButton").onclick=()=>{save();msg("セーブしました。")};
   $("menuButton").onclick=()=>$("menuModal").classList.remove("hidden");$("menuClose").onclick=()=>$("menuModal").classList.add("hidden");$("dialogClose").onclick=()=>$("dialogModal").classList.add("hidden");
