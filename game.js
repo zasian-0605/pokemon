@@ -6,9 +6,9 @@ const cache=new Map(),imgCache=new Map();let raf=0,lastStep=0,frame=0;
 const TILE=32,COLS=20,ROWS=15;
 const MAPS={
  town:{name:"星見町",tiles:[
-"####################","#tttttttttttttttttt#","#ttttt....ttttttttt#","#ttttt....ttttttttt#","#tt..gggggg..ttttt#","#tt..gggggg..tttttt#","#....gggggg.........#","#....gg..gg.........#","#....gg..gg.........#","#....gggggg.........#","#...................#","#......~~~~.........#","#......~~~~.........#","#...................#","####################"]},
+"####################","#tttttttttttttttttt#","#tttttt....tttttttt#","#ttttt......ttttttt#","#tt....gggggg....tt#","#tt....gg..gg....tt#","#......gg..gg......#","#......gg..gg......#","#......gggggg......#","#..................#","#....~~~~..........#","#....~~~~..........#","#..................#","#..................#","####################"]},
  route:{name:"1番道路",tiles:[
-"####################","#..gggg....gggg....#","#..gggg....gggg....#","#..gggg....gggg....#","#..gggg....gggg....#","#..................#","#..gggg....gggg....#","#..gggg....gggg....#","#..................#","#..gggggggggggggg..#","#..gggggggggggggg..#","#..................#","#..................#","#..................#","####################"]},
+"####################","#..gggg....gggg....#","#..gggg....gggg....#","#..gggg....gggg....#","#..gggg....gggg....#","#..................#","#..gggg....gggg....#","#..gggg....gggg....#","#..................#","#..gggg......gggg..#","#..gggg......gggg..#","#..................#","#..................#","#..................#","####################"]},
  lake:{name:"ミズホ湿原",tiles:[
 "####################","#gggggggg~~~~ggggg#","#gggggg~~~~~~ggggg#","#gggg~~~~~~~~~~ggg#","#gggg~~~~~~~~~~ggg#","#gggggg~~~~~~ggggg#","#gggggggg~~~~ggggg#","#..................#","#..gggggg....gggg..#","#..gggggg....gggg..#","#..................#","#..................#","#..................#","#..................#","####################"]}};
 function tileAt(x,y){const m=MAPS[state.area]||MAPS.town;return m.tiles[y]?.[x]||"#"}function solid(t){return "#t~".includes(t)}
@@ -61,10 +61,14 @@ function showMoves(){const box=$("moves");box.classList.remove("hidden");$("batt
 function menuOpen(){ $("menuPanel").classList.remove("hidden");$("menuInfo").textContent="図鑑 "+state.dex.size+"匹 / バッジ "+state.badges}
 document.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(state.screen==="world"){if(k==="arrowup"||k==="w")stepDir(0,-1);else if(k==="arrowdown"||k==="s")stepDir(0,1);else if(k==="arrowleft"||k==="a")stepDir(-1,0);else if(k==="arrowright"||k==="d")stepDir(1,0);else if(k==="e"||k==="enter"){
   const t=tileAt(state.x,state.y);
-  if(state.area==="town"&&state.x>=2&&state.x<=4&&state.y>=1&&state.y<=3)say("ポケモンセンターだ。旅のポケモンを休ませよう。");
-  else if(state.area==="town"&&state.x>=15&&state.y<=4)say("アサギ博士の研究所。ポケモンの研究資料が並んでいる。");
-  else if(t==="~")say("水面がきらきら光っている。");
-  else if(t==="g")say("草むらだ。野生のポケモンが潜んでいるかもしれない。");
+  const ahead={up:[state.x,state.y-1],down:[state.x,state.y+1],left:[state.x-1,state.y],right:[state.x+1,state.y]}[state.dir];
+  const at=tileAt(...ahead);
+  if(state.area==="town"&&at==="~"){say("小さな池だ。ポケモンの気配がする。")}
+  else if(state.area==="town"&&state.x>=2&&state.x<=4&&state.y>=2&&state.y<=3)say("ポケモンセンター。やすませていこう。")
+  else if(state.area==="town"&&state.x>=15&&state.y<=4)say("アサギ博士の研究所。ポケモンの研究資料が並んでいる。")
+  else if(t==="~")say("水面がきらきら光っている。")
+  else if(t==="g"||at==="g")say("草むらだ。野生のポケモンが潜んでいるかもしれない。")
+  else if(at==="#"||at==="t")say("道具や建物の一部が見える。")
   else say("周囲を調べた。");
 }else if(k==="escape")menuOpen()}else if(state.screen==="cutscene"&&(k==="enter"||k==="a"||e.key===" ")){advance()}else if(state.screen==="battle"&&e.key==="Escape"){show("world");state.battle=null}});
 $("start").onclick=cutsceneStart;$("sceneNext").onclick=advance;$("sceneSkip").onclick=()=>{show("starter");starterList()};$("continue").onclick=()=>load().then(ok=>{if(!ok)cutsceneStart()});$("save").onclick=save;$("menu").onclick=menuOpen;$("closeMenu").onclick=()=>$("menuPanel").classList.add("hidden");$("closeMenu2").onclick=()=>$("menuPanel").classList.add("hidden");$("heal").onclick=()=>{state.party.forEach(p=>p.currentHp=p.stats.hp);$("menuPanel").classList.add("hidden");say("ポケモンの体力が回復した！")};$("dex").onclick=()=>{$("menuInfo").textContent=[...state.dex].map(n=>jp(n)).join("、")||"まだ登録されていない。"};document.querySelectorAll("[data-cmd]").forEach(b=>b.onclick=()=>{const c=b.dataset.cmd;if(c==="fight")showMoves();else if(c==="run"){state.battle=null;show("world");say("うまく逃げ切れた！")}else if(c==="bag"){$("bag").classList.remove("hidden");$("battleCommands").classList.add("hidden")}else if(c==="pokemon"){const alive=state.party.findIndex(p=>p.currentHp>0);if(alive>0){state.party.unshift(state.party.splice(alive,1)[0]);renderBattleUI();setBattle("ポケモンを入れ替えた！")}}});$("bag").querySelector('[data-item="back"]').onclick=()=>{$("bag").classList.add("hidden");$("battleCommands").classList.remove("hidden")};$("bag").querySelector('[data-item="potion"]').onclick=()=>{const p=state.party[0];p.currentHp=Math.min(p.stats.hp,p.currentHp+20);setBattle("キズぐすりを使った！");$("bag").classList.add("hidden");$("battleCommands").classList.remove("hidden");setTimeout(enemyTurn,600)};$("bag").querySelector('[data-item="pokeball"]').onclick=()=>{if(state.battle?.enemy&&state.items.pokeball>0){state.items.pokeball--;state.party.push(state.battle.enemy);state.battle=null;show("world");say("野生のポケモンをつかまえた！")}};window.addEventListener("load",()=>{starterList();raf=requestAnimationFrame(anim);cutsceneLoop()});
