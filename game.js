@@ -241,7 +241,10 @@ function drawGrassTexture(ctx,x,y,w,h,dense=1,time=0){
   for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)drawGrassTile(ctx,tx*TILE,ty*TILE,tx,ty,time);
   if(dense>1)for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)if(seeded(tx,ty,93)>.7)drawFlowerPatch(ctx,tx*TILE,ty*TILE,tx,ty);
 }
-function drawFlowers(ctx,x,y,w,h){drawGrassTexture(ctx,x,y,w,h,2,0)}
+function drawFlowers(ctx,x,y,w,h){
+  const sx=Math.floor(x/TILE),sy=Math.floor(y/TILE),ex=Math.ceil((x+w)/TILE),ey=Math.ceil((y+h)/TILE);
+  for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)drawFlowerPatch(ctx,tx*TILE,ty*TILE,tx,ty);
+}
 function drawTree(ctx,x,y,scale=1){
   const s=scale;
   ctx.save();ctx.translate(x,y);ctx.imageSmoothingEnabled=false;
