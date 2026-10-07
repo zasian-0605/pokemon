@@ -30,7 +30,7 @@ const LEAGUE=[
 const state={version:VERSION,screen:"title",area:0,pos:{x:14,y:17},party:[],box:[],dex:new Set(),money:3000,badges:0,items:{potion:5,superpotion:2,pokeball:10},battle:null,leagueIndex:0,online:false,ws:null,selfId:null,players:new Map()};
 const cache={pokemon:new Map(),move:new Map(),pokedex:null};
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-function show(screen){["titleScreen","starterScreen","gameScreen","battleScreen"].forEach(id=>$(id).classList.add("hidden"));$(screen).classList.remove("hidden");state.screen=screen}
+function show(screen){["titleScreen","introScreen","starterScreen","gameScreen","battleScreen"].forEach(id=>$(id).classList.add("hidden"));$(screen).classList.remove("hidden");state.screen=screen}
 function msg(t){if(state.screen==="gameScreen")$("fieldMessage").textContent=t}
 function setBattleText(t){if(state.screen==="battleScreen")$("battleText").textContent=t}
 async function getPokemon(name){
