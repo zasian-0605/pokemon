@@ -30,7 +30,7 @@ const LEAGUE=[
 const state={version:VERSION,screen:"title",area:0,pos:{x:14,y:17},party:[],box:[],dex:new Set(),money:3000,badges:0,items:{potion:5,superpotion:2,pokeball:10},battle:null,leagueIndex:0,online:false,ws:null,selfId:null,players:new Map()};
 const cache={pokemon:new Map(),move:new Map(),pokedex:null};
 const clamp=(n,a,b)=>Math.min(b,Math.max(a,n));
-function show(screen){["titleScreen","introScreen","starterScreen","gameScreen","battleScreen"].forEach(id=>$(id).classList.add("hidden"));$(screen).classList.remove("hidden");state.screen=screen}
+function show(screen){["titleScreen","introScreen","starterScreen","gameScreen","battleScreen"].forEach(id=>$(id).classList.add("hidden"));$(screen).classList.remove("hidden");state.screen=screen;if(screen==="gameScreen")ensureFieldAnimation()}
 function msg(t){if(state.screen==="gameScreen")$("fieldMessage").textContent=t}
 function setBattleText(t){if(state.screen==="battleScreen")$("battleText").textContent=t}
 async function getPokemon(name){
@@ -132,13 +132,13 @@ function renderParty(){
 }
 function showMonInfo(i){const p=state.party[i];if(!p)return;$("dialogContent").innerHTML="<h2>"+p.nameJa+"</h2><p>"+p.species+"　Lv."+p.level+"</p><p>タイプ："+p.types.join(" / ")+"</p><p>HP "+p.currentHp+" / "+p.stats.hp+"</p><p>技："+p.moves.map(m=>m.nameJa||m.name).join(" / ")+"</p>";$("dialogModal").classList.remove("hidden")}
 function seeded(x,y,s=0){const n=Math.sin(x*12.9898+y*78.233+s*37.719)*43758.5453;return n-Math.floor(n)}
-function drawGrassTexture(ctx,x,y,w,h,dense=1){
+function drawGrassTexture(ctx,x,y,w,h,dense=1,time=0){
   ctx.fillStyle="#73ae61";ctx.fillRect(x,y,w,h);
   const step=14;
   for(let yy=y+2;yy<y+h;yy+=step)for(let xx=x+2;xx<x+w;xx+=step){
     const r=seeded(xx,yy,w+h);
     if(r<.78){
-      const lean=(r-.39)*7;ctx.strokeStyle=r<.2?"#4f9650":"#5fa155";ctx.lineWidth=2;
+      const sway=Math.sin(time/430+xx*.018+yy*.009)*1.7;const lean=(r-.39)*7+sway;ctx.strokeStyle=r<.2?"#4f9650":"#5fa155";ctx.lineWidth=2;
       ctx.beginPath();ctx.moveTo(xx,yy+9);ctx.lineTo(xx+lean,yy+2);ctx.stroke();
       if(dense>1&&r>.62){ctx.beginPath();ctx.moveTo(xx+3,yy+9);ctx.lineTo(xx+7,yy+3);ctx.stroke()}
     }
@@ -155,12 +155,12 @@ function drawTree(ctx,x,y,scale=1){
   ctx.fillStyle="#4d8d54";ctx.beginPath();ctx.arc(x-17*scale,y+9*scale,18*scale,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+16*scale,y+9*scale,20*scale,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#659d5b";ctx.beginPath();ctx.arc(x-7*scale,y-10*scale,13*scale,0,Math.PI*2);ctx.fill();
 }
-function drawPond(ctx,x,y,w,h){
+function drawPond(ctx,x,y,w,h,time=0){
   ctx.fillStyle="#477c59";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/2+9,h/2+8,0,0,Math.PI*2);ctx.fill();
   const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,"#79c6d4");g.addColorStop(1,"#4c9cad");ctx.fillStyle=g;
   ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle="#a1dae0";ctx.lineWidth=2;
-  for(let i=0;i<5;i++){const yy=y+22+i*24;ctx.beginPath();ctx.moveTo(x+40+i*11,yy);ctx.quadraticCurveTo(x+w/2,yy-5,x+w-55-i*8,yy);ctx.stroke()}
+  for(let i=0;i<5;i++){const yy=y+22+i*24+Math.sin(time/900+i)*2;ctx.beginPath();ctx.moveTo(x+40+i*11,yy);ctx.quadraticCurveTo(x+w/2,yy-5-Math.sin(time/700+i)*2,x+w-55-i*8,yy);ctx.stroke()}
   ctx.fillStyle="#78aa59";for(let i=0;i<8;i++){const px=x+25+i*42;const py=y+h-10-(i%3)*5;ctx.beginPath();ctx.ellipse(px,py,12,4,.2,0,Math.PI*2);ctx.fill()}
 }
 function drawBuilding(ctx,x,y,label,type="house"){
@@ -171,13 +171,13 @@ function drawBuilding(ctx,x,y,label,type="house"){
   ctx.fillStyle="#fff";ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.fillText(label,x*30+75,y*30+145);ctx.textAlign="left";
 }
 function drawField(){
-  const c=$("field"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30,a=AREA[state.area];
+  const c=$("field"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30,a=AREA[state.area],time=performance.now();
   ctx.clearRect(0,0,w,h);
-  drawGrassTexture(ctx,0,0,w,h,1);
+  drawGrassTexture(ctx,0,0,w,h,1,time);
   if(a.bg==="cave"){
     ctx.fillStyle="#5c5662";ctx.fillRect(0,0,w,h);for(let y=0;y<h;y+=18)for(let x=0;x<w;x+=18){const r=seeded(x,y,55);ctx.fillStyle=r>.5?"#68616e":"#625b67";ctx.fillRect(x,y,18,18);if(r>.76){ctx.fillStyle="#85808a";ctx.fillRect(x+5,y+4,7,3)}}
   }
-  if(a.bg==="water"){drawGrassTexture(ctx,0,0,w,h,1);drawPond(ctx,600,30,280,210);drawPond(ctx,55,335,240,150)}
+  if(a.bg==="water"){drawGrassTexture(ctx,0,0,w,h,1,time);drawPond(ctx,600,30,280,210,time);drawPond(ctx,55,335,240,150,time)}
   ctx.fillStyle="#d7bc83";ctx.fillRect(0,9*t,w,2*t);ctx.fillRect(14*t,0,2*t,h);
   for(let x=0;x<w;x+=16){ctx.fillStyle=x%32===0?"#c7a96f":"#dfc791";ctx.fillRect(x,9*t,8,3);ctx.fillRect(x,10*t+7,6,2)}
   if(a.bg==="route"){for(const [x,y] of [[3,3],[4,3],[3,4],[25,4],[26,4],[25,5],[6,15],[7,15],[6,16],[20,15],[21,15],[20,16]])drawTree(ctx,x*t+28,y*t+26,.8);drawFlowers(ctx,0,0,w,h)}
@@ -186,7 +186,7 @@ function drawField(){
     drawBuilding(ctx,9,2,"フレンドリィショップ","shop");
     drawBuilding(ctx,18,2,"ジム","gym");
     drawBuilding(ctx,17,11,"アサギ研究所","lab");
-    drawPond(ctx,485,345,250,145);
+    drawPond(ctx,485,345,250,145,time);
     for(const [x,y,s] of [[1,14,1],[5,16,.9],[26,15,.8],[28,6,.9],[16,4,.75],[15,17,.72],[25,11,.72]])drawTree(ctx,x*t+15,y*t+20,s);
     drawFlowers(ctx,0,0,w,h);
     // Professor and rival are visible NPCs near the laboratory.
@@ -210,7 +210,14 @@ function drawNpc(ctx,x,y,kind){
   ctx.fillStyle=kind==="professor"?"#e8edf0":"#4e2c25";ctx.fillRect(x-9*s,y-17*s,18*s,6*s);
   if(kind==="professor"){ctx.fillStyle="#6b7f90";ctx.fillRect(x+7*s,y-2*s,5*s,13*s);ctx.fillStyle="#ffffff";ctx.fillRect(x-15*s,y+1*s,7*s,12*s)}
 }
+let fieldAnimation=0,lastFieldFrame=0;
 function renderField(){drawField()}
+function animateField(time){
+  if(state.screen!=="gameScreen"){fieldAnimation=0;return}
+  if(time-lastFieldFrame>90){lastFieldFrame=time;drawField();renderPlayers()}
+  fieldAnimation=requestAnimationFrame(animateField)
+}
+function ensureFieldAnimation(){if(!fieldAnimation)fieldAnimation=requestAnimationFrame(animateField)}
 function renderPlayers(){if(!state.players)return;const c=$("field"),ctx=c.getContext("2d");for(const p of state.players.values()){if(p.id===state.selfId)continue;ctx.fillStyle="#5d63a8";ctx.fillRect(p.x/100*c.width-8,p.y/100*c.height-11,16,22)}}
 function renderAll(){renderInfo();renderParty();renderField();renderPlayers()}
 function blocked(x,y){if(x<0||x>29||y<0||y>19)return false;if(AREA[state.area].bg==="water"&&x>=20&&y<7)return true;if(state.area===0&&((x>=2&&x<7&&y>=2&&y<6)||(x>=9&&x<14&&y>=2&&y<6)||(x>=18&&x<23&&y>=2&&y<6)))return true;return false}
