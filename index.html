@@ -1,38 +1,137 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#18222c"><title>MONSTER VEIL - 星境の冒険</title><link rel="stylesheet" href="styles.css">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#d62828">
+<title>ポケットモンスター 星巡りの旅</title>
+<link rel="stylesheet" href="/styles.css">
 </head>
 <body>
 <div id="app">
-  <div id="titleScreen" class="screen">
-    <div class="logo-orb">✦</div><h1>MONSTER VEIL</h1><p>星境の冒険</p>
-    <div class="title-copy">人間とモンスターが、同じ世界で生きる。<br>戦うだけが、仲間になる方法じゃない。</div>
-    <button id="newGameBtn" class="primary">はじめる</button><button id="loadGameBtn">つづきから</button>
-    <div class="tiny">この作品はオリジナルのモンスターと世界観で作られたブラウザゲームです。</div>
-  </div>
-  <div id="starterScreen" class="screen hidden"><h2>最初の相棒を選ぼう</h2><p class="muted">炎・草・水。君と旅をしたい子を選んでください。</p><div id="starterList" class="starter-grid"></div></div>
-  <div id="gameScreen" class="hidden">
-    <header><div><strong>MONSTER VEIL</strong><span id="areaName" class="pill">はじまりの原</span></div><div class="header-actions"><span id="routeLabel" class="pill">BALANCE</span><button id="saveBtn">セーブ</button></div></header>
-    <main class="layout">
-      <section class="world-card card"><div id="world" aria-label="フィールド"><div class="sky-glow"></div><div class="path p1"></div><div class="path p2"></div><div class="water"></div><div class="grass g1"></div><div class="grass g2"></div><div class="grass g3"></div><div class="rocks r1"></div><div class="rocks r2"></div><div id="otherPlayers"></div><div id="player"></div></div>
-      <div class="movement"><button data-move="up">▲</button><div><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div></div><div id="message" class="message">草むらが風に揺れている。</div></section>
-      <aside class="side-column">
-        <section class="card panel"><div class="section-head"><h3>相棒</h3><span id="partyCount">1 / 6</span></div><div id="partyList"></div></section>
-        <section class="card panel"><h3>オンライン</h3><div id="onlineStatus" class="muted">オフライン</div><button id="onlineBtn">つながる</button><div id="roomInfo" class="small"></div><div id="chatLog" class="chat"></div><div class="chat-row"><input id="chatInput" maxlength="120" placeholder="チャット"><button id="chatSend">送信</button></div></section>
-        <section class="card panel"><h3>旅の情報</h3><div class="stats-row"><span>Lv</span><b id="levelLabel">3</b></div><div class="stats-row"><span>経験値</span><b id="xpLabel">0 / 38</b></div><div class="stats-row"><span>つかまえた数</span><b id="caughtLabel">1</b></div><button id="bagBtn">どうぐ・図鑑</button></section>
+  <section id="titleScreen" class="screen title-screen">
+    <div class="pokeball-logo"><span></span></div>
+    <h1>ポケットモンスター</h1>
+    <h2>星巡りの旅</h2>
+    <p>ポケモンと出会い、育て、戦い、仲間にしよう。</p>
+    <div class="title-buttons">
+      <button id="newGame" class="big primary">はじめから</button>
+      <button id="loadGame" class="big">つづきから</button>
+    </div>
+    <p class="tiny">ファンゲーム / 独自ストーリー・独自マップ</p>
+  </section>
+
+  <section id="starterScreen" class="screen hidden">
+    <div class="box starter-box">
+      <h2>最初のポケモン</h2>
+      <p class="muted">旅の相棒を1匹選んでください。</p>
+      <div id="starterGrid" class="starter-grid"></div>
+    </div>
+  </section>
+
+  <section id="gameScreen" class="screen hidden">
+    <header class="topbar">
+      <div><b>ポケットモンスター 星巡りの旅</b><span id="placeName" class="route-pill">星見町</span></div>
+      <div class="top-actions">
+        <span id="badgeCount" class="route-pill">バッジ 0</span>
+        <button id="saveButton">セーブ</button>
+        <button id="menuButton">メニュー</button>
+      </div>
+    </header>
+
+    <main class="game-layout">
+      <section class="box field-box">
+        <canvas id="field" width="900" height="600" aria-label="フィールド"></canvas>
+        <div class="field-tip">WASD / 矢印キー / 画面ボタンで移動　Eで人や施設を調べる</div>
+        <div class="dpad">
+          <button data-dir="up">▲</button>
+          <div><button data-dir="left">◀</button><button data-dir="down">▼</button><button data-dir="right">▶</button></div>
+        </div>
+        <div id="fieldMessage" class="dialog">ポケモンといっしょに旅に出よう。</div>
+      </section>
+
+      <aside class="side">
+        <section class="box party-box">
+          <div class="section-title"><h3>手持ち</h3><span id="partySize">0 / 6</span></div>
+          <div id="partyList"></div>
+        </section>
+
+        <section class="box side-box">
+          <h3>冒険情報</h3>
+          <div class="statline"><span>図鑑</span><b id="dexCount">0</b></div>
+          <div class="statline"><span>所持金</span><b id="money">3000円</b></div>
+          <div class="statline"><span>バッジ</span><b id="badgeText">0</b></div>
+          <div class="progress"><span id="storyProgress"></span></div>
+        </section>
+
+        <section class="box side-box">
+          <h3>オンライン</h3>
+          <div id="onlineState" class="muted">オフライン</div>
+          <button id="onlineButton">オンライン</button>
+          <div id="roomText" class="small"></div>
+          <div id="chatLog" class="chat"></div>
+          <div class="chat-row"><input id="chatInput" maxlength="120" placeholder="チャット"><button id="chatSend">送信</button></div>
+        </section>
       </aside>
     </main>
+  </section>
+
+  <section id="battleScreen" class="screen battle-screen hidden">
+    <div class="battle-card">
+      <div class="battle-header">
+        <div>
+          <span id="battleKind" class="muted">野生のポケモン</span>
+          <h2 id="enemyName">？？？</h2>
+          <div id="enemyMeta"></div>
+        </div>
+        <div class="hp-wrap"><div class="hp-caption">HP</div><div class="hp"><span id="enemyHpBar"></span></div><div id="enemyHpText"></div></div>
+      </div>
+
+      <div class="battle-scene">
+        <img id="enemySprite" class="enemy-sprite" alt="">
+        <div id="battleEffect" class="battle-effect"></div>
+        <img id="playerSprite" class="player-sprite" alt="">
+      </div>
+
+      <div class="battle-header player-status">
+        <div><b id="playerMonName"></b><div id="playerMonMeta"></div></div>
+        <div class="hp-wrap"><div class="hp-caption">HP</div><div class="hp"><span id="playerHpBar"></span></div><div id="playerHpText"></div></div>
+      </div>
+
+      <div id="battleText" class="battle-text">どうする？</div>
+      <div id="movePanel" class="move-panel hidden"></div>
+      <div id="battleMenu" class="battle-menu">
+        <button data-battle="fight">たたかう</button>
+        <button data-battle="bag">バッグ</button>
+        <button data-battle="pokemon">ポケモン</button>
+        <button data-battle="run">にげる</button>
+      </div>
+      <div id="bagPanel" class="sub-panel hidden">
+        <button data-item="potion">キズぐすり</button>
+        <button data-item="pokeball">モンスターボール</button>
+        <button data-item="back">もどる</button>
+      </div>
+      <div id="switchPanel" class="sub-panel hidden"></div>
+    </div>
+  </section>
+
+  <div id="menuModal" class="modal hidden">
+    <div class="modal-card">
+      <button id="menuClose" class="modal-close">×</button>
+      <h2>メニュー</h2>
+      <button id="pokedexButton">ポケモンずかん</button>
+      <button id="partyButton">ポケモン</button>
+      <button id="bagButton">バッグ</button>
+      <button id="mapButton">マップ</button>
+    </div>
   </div>
-  <div id="battleScreen" class="screen hidden"><div class="battle-wrap">
-    <div class="battle-top"><div><span id="enemyLabel">野生</span><h2 id="enemyName">モンスター</h2><div class="muted" id="enemyMeta">Lv.3</div></div><div class="hp-box"><div class="hp-bar"><span id="enemyHp"></span></div><div id="enemyHpText">30 / 30</div></div></div>
-    <div class="battle-arena"><div id="enemyMonster" class="monster-art"></div><div id="battleFx"></div><div id="heroMonster" class="monster-art"></div></div>
-    <div class="player-bar"><div><b id="heroName">相棒</b><div class="muted" id="heroMeta">Lv.3</div></div><div class="hp-box"><div class="hp-bar"><span id="heroHp"></span></div><div id="heroHpText">30 / 30</div></div></div>
-    <div id="battleLog" class="battle-log">どうする？</div><div id="moveGrid" class="move-grid hidden"></div>
-    <div class="battle-menu"><button data-action="fight">たたかう</button><button data-action="talk">はなす</button><button data-action="catch">つかまえる</button><button data-action="item">どうぐ</button><button data-action="run">にげる</button></div>
-  </div></div>
-  <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
+  <div id="dialogModal" class="modal hidden">
+    <div class="modal-card wide">
+      <button id="dialogClose" class="modal-close">×</button>
+      <div id="dialogContent"></div>
+    </div>
+  </div>
 </div>
-<script type="module" src="game.js"></script>
-</body></html>
+<script type="module" src="/game.js"></script>
+</body>
+</html>
