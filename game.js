@@ -59,6 +59,56 @@ async function makeMon(name,level,trainer=false){
 function serialize(){return{version:VERSION,area:state.area,pos:state.pos,party:state.party,box:state.box,dex:[...state.dex],money:state.money,badges:state.badges,items:state.items,leagueIndex:state.leagueIndex}}
 function save(){try{localStorage.setItem("pokemon-star-journey-save",JSON.stringify(serialize()));return true}catch{return false}}
 function load(){try{const x=JSON.parse(localStorage.getItem("pokemon-star-journey-save")||"null");if(!x?.party?.length||x.version!==VERSION)return false;Object.assign(state,x);state.dex=new Set(x.dex||[]);state.battle=null;state.ws=null;state.players=new Map();state.online=false;return true}catch{return false}}
+
+const INTRO_LINES=[
+ "？？？「待ってくれ！」",
+ "博士「私はアサギ博士。ここでポケモンの暮らしを研究しているんだ。」",
+ "博士「この池には、たくさんのポケモンが水を飲みに来る。ほら、あそこにも。」",
+ "博士「君もポケモンといっしょに旅をしてみないかい？」",
+ "博士「研究所に相棒を用意してある。君にぴったりの1匹を選ぼう。」"
+];
+const introState={start:0,line:0,ended:false};
+const introImages={};
+function preloadIntroPokemon(){
+  for(const n of ["psyduck","lotad"]){getPokemon(n).then(p=>{const im=new Image();im.src=p.sprite;introImages[n]=im})}
+}
+function drawIntro(){
+  const c=$("introCanvas"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30;
+  ctx.clearRect(0,0,w,h);
+  const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,"#9ed1df");g.addColorStop(.48,"#cde5cf");g.addColorStop(.49,"#82ba70");g.addColorStop(1,"#6ca35e");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
+  drawGrassTexture(ctx,0,260,w,280,1.35);drawFlowers(ctx,40,270,w-80,240);
+  drawPond(ctx,500,90,360,280);
+  for(const [x,y,s] of [[65,90,1.15],[170,150,.9],[865,80,1.05],[775,390,.8],[340,95,.8]])drawTree(ctx,x,y,s);
+  ctx.fillStyle="#d7bc83";ctx.beginPath();ctx.moveTo(0,370);ctx.quadraticCurveTo(280,300,505,350);ctx.quadraticCurveTo(700,410,960,320);ctx.lineTo(960,365);ctx.quadraticCurveTo(700,455,505,395);ctx.quadraticCurveTo(275,345,0,415);ctx.closePath();ctx.fill();
+  // water Pokemon
+  for(const [id,x,y,s] of [["psyduck",615,210,.55],["lotad",760,180,.5]]){const im=introImages[id];if(im?.complete)ctx.drawImage(im,x-40*s,y-40*s,80*s,80*s)}
+  // player
+  const p={x:220,y:355};ctx.fillStyle="#45515a";ctx.beginPath();ctx.ellipse(p.x,p.y+38,18,7,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f2c6a3";ctx.beginPath();ctx.arc(p.x,p.y,13,0,Math.PI*2);ctx.fill();ctx.fillStyle="#284f88";ctx.fillRect(p.x-14,p.y-15,28,10);ctx.fillStyle="#f2f5f7";ctx.fillRect(p.x-12,p.y+11,24,27);ctx.fillStyle="#386aa5";ctx.fillRect(p.x-10,p.y+35,7,16);ctx.fillRect(p.x+3,p.y+35,7,16);
+  // professor: walks from far bank into shallow water, then toward player
+  const elapsed=performance.now()-introState.start;
+  const p1=Math.min(1,elapsed/1800),p2=Math.min(1,Math.max(0,(elapsed-1800)/1300));
+  const profX=780-(p1*115)-(p2*120),profY=110+(p1*85)+(p2*125),walk=Math.floor(elapsed/160)%2;
+  ctx.fillStyle="#40505a";ctx.beginPath();ctx.ellipse(profX,profY+42,19,7,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#2e343a";ctx.fillRect(profX-8,profY+28,7,18+(walk?3:0));ctx.fillRect(profX+1,profY+28,7,18+(walk?0:3));
+  ctx.fillStyle="#e9edf0";ctx.fillRect(profX-18,profY+4,36,29);ctx.fillStyle="#24303a";ctx.fillRect(profX-13,profY+27,26,5);
+  ctx.fillStyle="#f0c8aa";ctx.beginPath();ctx.arc(profX,profY-4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f1f3f4";ctx.fillRect(profX-12,profY-18,24,8);ctx.fillStyle="#7896aa";ctx.fillRect(profX+8,profY+2,7,18);
+  ctx.fillStyle="#3e5f74";ctx.font="bold 17px sans-serif";ctx.fillText("湖畔の朝",28,34);
+  if(elapsed>3100||introState.line>0){
+    $("introText").textContent=INTRO_LINES[introState.line];
+    $("introNext").textContent=introState.line>=INTRO_LINES.length-1?"相棒を選ぶ":"つぎへ";
+  }else{$("introText").textContent="池のそばで、博士を待っている……";$("introNext").textContent="待つ";}
+  requestAnimationFrame(drawIntro);
+}
+function startIntro(){
+  introState.start=performance.now();introState.line=0;introState.ended=false;show("introScreen");preloadIntroPokemon();drawIntro();
+}
+function introAdvance(){
+  const elapsed=performance.now()-introState.start;
+  if(elapsed<1800){introState.start-=1600;return}
+  if(introState.line<INTRO_LINES.length-1){introState.line++;return}
+  introState.ended=true;show("starterScreen");
+}
+function skipIntro(){introState.ended=true;show("starterScreen")}
 async function starterCards(){
   const box=$("starterGrid");box.innerHTML="";
   for(const id of STARTERS){try{const p=await getPokemon(id);const b=document.createElement("button");b.className="starter-card";b.innerHTML="<img src='"+p.sprite+"' alt=''><h3>"+p.nameJa+"</h3><span class='type'>"+p.types.join(" / ")+"</span><p class='muted'>"+p.name+"</p>";b.onclick=()=>startNew(id);box.appendChild(b)}catch{}}
@@ -74,17 +124,70 @@ function renderParty(){
   state.party.forEach((p,i)=>{const d=document.createElement("div");d.className="party-item";const ratio=Math.max(0,p.currentHp/p.stats.hp)*100;d.innerHTML="<div class='ball'></div><div><div class='party-name'>"+p.nameJa+"</div><div class='party-meta'>Lv."+p.level+"　"+p.types.join(" / ")+(p.status?"　"+p.status:"")+"</div><div class='bar'><span style='width:"+ratio+"%'></span></div></div><div class='party-meta'>"+p.currentHp+"/"+p.stats.hp+"</div>";d.onclick=()=>showMonInfo(i);box.appendChild(d)})
 }
 function showMonInfo(i){const p=state.party[i];if(!p)return;$("dialogContent").innerHTML="<h2>"+p.nameJa+"</h2><p>"+p.species+"　Lv."+p.level+"</p><p>タイプ："+p.types.join(" / ")+"</p><p>HP "+p.currentHp+" / "+p.stats.hp+"</p><p>技："+p.moves.map(m=>m.nameJa||m.name).join(" / ")+"</p>";$("dialogModal").classList.remove("hidden")}
-function drawBuilding(ctx,x,y,label){ctx.fillStyle="#ead7bf";ctx.fillRect(x*30,y*30,5*30,4*30);ctx.fillStyle="#b44d48";ctx.beginPath();ctx.moveTo(x*30-8,y*30);ctx.lineTo((x+2.5)*30,(y-1)*30);ctx.lineTo((x+5)*30+8,y*30);ctx.fill();ctx.fillStyle="#4a5560";ctx.font="12px sans-serif";ctx.fillText(label,x*30+9,y*30+70)}
-function drawField(){const c=$("field"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30,a=AREA[state.area];ctx.clearRect(0,0,w,h);ctx.fillStyle={town:"#b6d889",route:"#8fc776",water:"#79b8cc",cave:"#615a67",mountain:"#a7c48b"}[a.bg];ctx.fillRect(0,0,w,h);
-  for(let y=0;y<20;y++)for(let x=0;x<30;x++)if((x+y)%3===0){ctx.fillStyle=a.bg==="cave"?"#6c6572":"#a8d18f";ctx.fillRect(x*t,y*t,t,t)}
-  if(a.bg!=="cave"){ctx.fillStyle="#d8bc82";ctx.fillRect(0,9*t,w,2*t);ctx.fillRect(14*t,0,2*t,h)}
-  if(a.bg==="water"){ctx.fillStyle="#4c9cab";ctx.fillRect(20*t,0,10*t,7*t);ctx.fillStyle="#6ea85d";ctx.fillRect(0,13*t,10*t,7*t)}
-  if(a.bg==="route")for(const [x,y] of [[3,3],[4,3],[3,4],[25,4],[26,4],[25,5],[6,15],[7,15],[6,16],[20,15],[21,15],[20,16]]){ctx.fillStyle="#55a451";ctx.fillRect(x*t,y*t,t*2,t*2)}
-  if(a.bg==="town"){drawBuilding(ctx,2,2,"ポケモンセンター");drawBuilding(ctx,9,2,"フレンドリィショップ");drawBuilding(ctx,18,2,"ジム");ctx.fillStyle="#f4d36e";ctx.fillRect(0,16*t,4*t,4*t)}
-  if(a.bg==="cave"){ctx.fillStyle="#403a45";ctx.fillRect(8*t,4*t,10*t,4*t);for(const [x,y] of [[3,5],[5,11],[22,5],[23,13],[11,16],[26,16]]){ctx.fillStyle="#89828d";ctx.beginPath();ctx.arc(x*t,y*t,16,0,Math.PI*2);ctx.fill()}}
-  if(a.bg==="mountain")for(const [x,y,s] of [[3,15,50],[6,11,70],[24,15,55],[26,9,85],[15,4,90]]){ctx.fillStyle="#789a72";ctx.beginPath();ctx.moveTo(x*t,y*t);ctx.lineTo((x+2)*t,(y-s/30)*t);ctx.lineTo((x+4)*t,y*t);ctx.fill()}
-  ctx.fillStyle="#fff";ctx.font="12px sans-serif";if(a.north!==null)ctx.fillText("↑ "+AREA[a.north].name,420,16);if(a.south!==null)ctx.fillText("↓ "+AREA[a.south].name,420,590);if(a.west!==null)ctx.fillText("← "+AREA[a.west].name,8,285);if(a.east!==null)ctx.fillText(AREA[a.east].name+" →",770,285);
-  ctx.fillStyle="#3a6d4d";ctx.fillRect(state.pos.x*t+6,state.pos.y*t+6,18,18);ctx.fillStyle="#f7f7f7";ctx.fillRect(state.pos.x*t+9,state.pos.y*t+9,12,5)
+function seeded(x,y,s=0){const n=Math.sin(x*12.9898+y*78.233+s*37.719)*43758.5453;return n-Math.floor(n)}
+function drawGrassTexture(ctx,x,y,w,h,dense=1){
+  ctx.fillStyle="#73ae61";ctx.fillRect(x,y,w,h);
+  const step=14;
+  for(let yy=y+2;yy<y+h;yy+=step)for(let xx=x+2;xx<x+w;xx+=step){
+    const r=seeded(xx,yy,w+h);
+    if(r<.78){
+      const lean=(r-.39)*7;ctx.strokeStyle=r<.2?"#4f9650":"#5fa155";ctx.lineWidth=2;
+      ctx.beginPath();ctx.moveTo(xx,yy+9);ctx.lineTo(xx+lean,yy+2);ctx.stroke();
+      if(dense>1&&r>.62){ctx.beginPath();ctx.moveTo(xx+3,yy+9);ctx.lineTo(xx+7,yy+3);ctx.stroke()}
+    }
+  }
+}
+function drawFlowers(ctx,x,y,w,h){
+  for(let yy=y+12;yy<y+h-5;yy+=28)for(let xx=x+12;xx<x+w-5;xx+=31){
+    const r=seeded(xx,yy,91);if(r>.62){ctx.fillStyle=r>.82?"#f5dd75":"#f0a0b3";ctx.fillRect(xx,yy,4,4);ctx.fillStyle="#e9ecbc";ctx.fillRect(xx+1,yy+4,2,5)}
+  }
+}
+function drawTree(ctx,x,y,scale=1){
+  ctx.fillStyle="#55784e";ctx.fillRect(x-5*scale,y+12*scale,10*scale,20*scale);
+  ctx.fillStyle="#39754b";ctx.beginPath();ctx.arc(x,y,25*scale,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#4d8d54";ctx.beginPath();ctx.arc(x-17*scale,y+9*scale,18*scale,0,Math.PI*2);ctx.fill();ctx.beginPath();ctx.arc(x+16*scale,y+9*scale,20*scale,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#659d5b";ctx.beginPath();ctx.arc(x-7*scale,y-10*scale,13*scale,0,Math.PI*2);ctx.fill();
+}
+function drawPond(ctx,x,y,w,h){
+  ctx.fillStyle="#477c59";ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/2+9,h/2+8,0,0,Math.PI*2);ctx.fill();
+  const g=ctx.createLinearGradient(x,y,x+w,y+h);g.addColorStop(0,"#79c6d4");g.addColorStop(1,"#4c9cad");ctx.fillStyle=g;
+  ctx.beginPath();ctx.ellipse(x+w/2,y+h/2,w/2,h/2,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle="#a1dae0";ctx.lineWidth=2;
+  for(let i=0;i<5;i++){const yy=y+22+i*24;ctx.beginPath();ctx.moveTo(x+40+i*11,yy);ctx.quadraticCurveTo(x+w/2,yy-5,x+w-55-i*8,yy);ctx.stroke()}
+  ctx.fillStyle="#78aa59";for(let i=0;i<8;i++){const px=x+25+i*42;const py=y+h-10-(i%3)*5;ctx.beginPath();ctx.ellipse(px,py,12,4,.2,0,Math.PI*2);ctx.fill()}
+}
+function drawBuilding(ctx,x,y,label,type="house"){
+  const body=type==="shop"?"#f2c98c":type==="gym"?"#cad8e4":"#efddc4";
+  ctx.fillStyle="#7d4e3e";ctx.fillRect(x*30,y*30,150,30);ctx.fillStyle=body;ctx.fillRect(x*30,y*30+16,150,104);
+  ctx.fillStyle=type==="gym"?"#607d9a":"#c65a4e";ctx.beginPath();ctx.moveTo(x*30-10,y*30+16);ctx.lineTo((x+2.5)*30,(y-1)*30);ctx.lineTo((x+5)*30+10,y*30+16);ctx.closePath();ctx.fill();
+  ctx.fillStyle="#57443b";ctx.fillRect(x*30+60,y*30+67,30,53);ctx.fillStyle="#7fc9dc";ctx.fillRect(x*30+16,y*30+58,27,27);ctx.fillRect(x*30+108,y*30+58,27,27);
+  ctx.fillStyle="#fff";ctx.font="bold 12px sans-serif";ctx.textAlign="center";ctx.fillText(label,x*30+75,y*30+145);ctx.textAlign="left";
+}
+function drawField(){
+  const c=$("field"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30,a=AREA[state.area];
+  ctx.clearRect(0,0,w,h);
+  drawGrassTexture(ctx,0,0,w,h,1);
+  if(a.bg==="cave"){
+    ctx.fillStyle="#5c5662";ctx.fillRect(0,0,w,h);for(let y=0;y<h;y+=18)for(let x=0;x<w;x+=18){const r=seeded(x,y,55);ctx.fillStyle=r>.5?"#68616e":"#625b67";ctx.fillRect(x,y,18,18);if(r>.76){ctx.fillStyle="#85808a";ctx.fillRect(x+5,y+4,7,3)}}
+  }
+  if(a.bg==="water"){drawGrassTexture(ctx,0,0,w,h,1);drawPond(ctx,600,30,280,210);drawPond(ctx,55,335,240,150)}
+  ctx.fillStyle="#d7bc83";ctx.fillRect(0,9*t,w,2*t);ctx.fillRect(14*t,0,2*t,h);
+  for(let x=0;x<w;x+=16){ctx.fillStyle=x%32===0?"#c7a96f":"#dfc791";ctx.fillRect(x,9*t,8,3);ctx.fillRect(x,10*t+7,6,2)}
+  if(a.bg==="route"){for(const [x,y] of [[3,3],[4,3],[3,4],[25,4],[26,4],[25,5],[6,15],[7,15],[6,16],[20,15],[21,15],[20,16]])drawTree(ctx,x*t+28,y*t+26,.8);drawFlowers(ctx,0,0,w,h)}
+  if(a.bg==="town"){
+    drawBuilding(ctx,2,2,"ポケモンセンター","house");drawBuilding(ctx,9,2,"フレンドリィショップ","shop");drawBuilding(ctx,18,2,"ジム","gym");
+    for(const [x,y,s] of [[1,14,1],[5,16,.9],[26,15,.8],[28,6,.9],[16,4,.75]])drawTree(ctx,x*t+15,y*t+20,s);
+    drawFlowers(ctx,0,0,w,h);
+  }
+  if(a.bg==="cave"){for(const [x,y] of [[3,5],[5,11],[22,5],[23,13],[11,16],[26,16]]){ctx.fillStyle="#817a87";ctx.beginPath();ctx.arc(x*t,y*t,16,0,Math.PI*2);ctx.fill();ctx.fillStyle="#aaa3ad";ctx.fillRect(x*t-3,y*t-9,6,5)}}
+  if(a.bg==="mountain"){
+    for(const [x,y,s] of [[3,15,50],[6,11,70],[24,15,55],[26,9,85],[15,4,90]]){ctx.fillStyle="#789a72";ctx.beginPath();ctx.moveTo(x*t,y*t);ctx.lineTo((x+2)*t,(y-s/30)*t);ctx.lineTo((x+4)*t,y*t);ctx.closePath();ctx.fill()}
+    for(const [x,y] of [[2,5],[6,5],[26,4],[27,16]])drawTree(ctx,x*t+15,y*t+18,.85);
+  }
+  ctx.fillStyle="#fff";ctx.font="bold 12px sans-serif";if(a.north!==null)ctx.fillText("↑ "+AREA[a.north].name,420,16);if(a.south!==null)ctx.fillText("↓ "+AREA[a.south].name,420,590);if(a.west!==null)ctx.fillText("← "+AREA[a.west].name,8,285);if(a.east!==null)ctx.fillText(AREA[a.east].name+" →",770,285);
+  // player
+  const px=state.pos.x*t+15,py=state.pos.y*t+18;ctx.fillStyle="#29323a";ctx.beginPath();ctx.ellipse(px,py+15,13,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f6d0ad";ctx.beginPath();ctx.arc(px,py-8,8,0,Math.PI*2);ctx.fill();ctx.fillStyle="#315c9c";ctx.fillRect(px-9,py-18,18,7);ctx.fillStyle="#e9f2f4";ctx.fillRect(px-7,py,14,16);ctx.fillStyle="#4772af";ctx.fillRect(px-7,py+13,5,9);ctx.fillRect(px+2,py+13,5,9);
+  if(state.area===0){ctx.fillStyle="#5c6470";ctx.fillRect(17*t+12,12*t+8,24,20);ctx.fillStyle="#fff";ctx.font="10px sans-serif";ctx.fillText("研究所",17*t+2,12*t+40)}
 }
 function renderField(){drawField()}
 function renderPlayers(){if(!state.players)return;const c=$("field"),ctx=c.getContext("2d");for(const p of state.players.values()){if(p.id===state.selfId)continue;ctx.fillStyle="#5d63a8";ctx.fillRect(p.x/100*c.width-8,p.y/100*c.height-11,16,22)}}
@@ -213,7 +316,7 @@ async function openDex(){
 function buildBagModal(){$("dialogContent").innerHTML="<h2>バッグ</h2><div class='bag-row'><span>キズぐすり</span><b>"+state.items.potion+"</b></div><div class='bag-row'><span>すごいキズぐすり</span><b>"+state.items.superpotion+"</b></div><div class='bag-row'><span>モンスターボール</span><b>"+state.items.pokeball+"</b></div><div class='bag-row'><span>ボックス</span><b>"+state.box.length+"</b></div>";$("dialogModal").classList.remove("hidden")}
 function openMap(){let html="<h2>マップ</h2>";AREA.forEach((a,i)=>html+="<p>"+(i===state.area?"▶ ":"")+(i<=state.badges+1?a.name:a.name+"（未開放）")+"</p>");$("dialogContent").innerHTML=html;$("dialogModal").classList.remove("hidden")}
 function setupButtons(){
-  $("newGame").onclick=()=>show("starterScreen");$("loadGame").onclick=()=>{if(load()){show("gameScreen");renderAll();msg("セーブデータを読み込みました。")}else show("starterScreen")};$("saveButton").onclick=()=>{save();msg("セーブしました。")};
+  $("newGame").onclick=startIntro;$("introNext").onclick=introAdvance;$("skipIntro").onclick=skipIntro;$("loadGame").onclick=()=>{if(load()){show("gameScreen");renderAll();msg("セーブデータを読み込みました。")}else show("starterScreen")};$("saveButton").onclick=()=>{save();msg("セーブしました。")};
   $("menuButton").onclick=()=>$("menuModal").classList.remove("hidden");$("menuClose").onclick=()=>$("menuModal").classList.add("hidden");$("dialogClose").onclick=()=>$("dialogModal").classList.add("hidden");
   $("pokedexButton").onclick=()=>{$("menuModal").classList.add("hidden");openDex()};$("partyButton").onclick=()=>{$("menuModal").classList.add("hidden");$("dialogContent").innerHTML="<h2>手持ち</h2>"+state.party.map((p,i)=>"<p>"+(i+1)+"　"+p.nameJa+" Lv."+p.level+"　HP "+p.currentHp+"/"+p.stats.hp+"</p>").join("");$("dialogModal").classList.remove("hidden")};$("bagButton").onclick=()=>{$("menuModal").classList.add("hidden");buildBagModal()};$("mapButton").onclick=()=>{$("menuModal").classList.add("hidden");openMap()};
   document.querySelectorAll("[data-dir]").forEach(b=>b.onclick=()=>{const d=b.dataset.dir;move(d==="left"?-1:d==="right"?1:0,d==="up"?-1:d==="down"?1:0)});
@@ -231,4 +334,4 @@ function onlineConnect(){
 }
 function chat(t){const d=document.createElement("div");d.textContent=t;$("chatLog").appendChild(d);$("chatLog").scrollTop=$("chatLog").scrollHeight}
 $("onlineButton").onclick=onlineConnect;$("chatSend").onclick=()=>{const t=$("chatInput").value.trim();if(t&&state.ws?.readyState===1){state.ws.send(JSON.stringify({type:"chat",text:t}));$("chatInput").value=""}};$("chatInput").addEventListener("keydown",e=>{if(e.key==="Enter")$("chatSend").click()});
-setupButtons();starterCards();
+setupButtons();starterCards();preloadIntroPokemon();
