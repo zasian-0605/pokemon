@@ -22,7 +22,7 @@ test("html references only current client",()=>{
 test("client/server contracts are present",()=>{
   const js=fs.readFileSync(path.join(root,"game.js"),"utf8");
   const server=fs.readFileSync(path.join(root,"server.js"),"utf8");
-  assert.match(js,/\/api\/pokemon\//);assert.match(js,/\/api\/move\//);assert.match(js,/data-battle/);
+  assert.match(js,/API\+"\/pokemon\//);assert.match(js,/API\+"\/move\//);assert.match(js,/data-battle/);
   assert.match(server,/\/api\/pokemon\/:name/);assert.match(server,/\/api\/move\/:name/);assert.match(server,/\/api\/sprite\/:id/);assert.match(server,/\/health/);
   assert.doesNotMatch(js,/pokeapi\.co|raw\.githubusercontent\.com/);
 });
