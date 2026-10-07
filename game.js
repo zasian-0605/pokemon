@@ -1,6 +1,6 @@
 const $=id=>document.getElementById(id);
 const API="/api";
-const VERSION=3;
+const VERSION=4;
 const STARTERS=["bulbasaur","charmander","squirtle","chikorita","cyndaquil","totodile","treecko","torchic","mudkip"];
 const AREA=[
  {name:"星見町",level:3,enc:["rattata","pidgey","sentret","zigzagoon"],bg:"town",north:null,south:1,west:null,east:2},
@@ -58,7 +58,7 @@ async function makeMon(name,level,trainer=false){
 }
 function serialize(){return{version:VERSION,area:state.area,pos:state.pos,party:state.party,box:state.box,dex:[...state.dex],money:state.money,badges:state.badges,items:state.items,leagueIndex:state.leagueIndex}}
 function save(){try{localStorage.setItem("pokemon-star-journey-save",JSON.stringify(serialize()));return true}catch{return false}}
-function load(){try{const x=JSON.parse(localStorage.getItem("pokemon-star-journey-save")||"null");if(!x?.party?.length||x.version!==VERSION)return false;Object.assign(state,x);state.dex=new Set(x.dex||[]);state.battle=null;state.ws=null;state.players=new Map();state.online=false;return true}catch{return false}}
+function load(){try{const x=JSON.parse(localStorage.getItem("pokemon-star-journey-save")||"null");if(!x?.party?.length||x.version!==VERSION)return false;if(!x.party.every(p=>p&&p.species&&p.stats&&Array.isArray(p.moves)))return false;Object.assign(state,x);state.dex=new Set(x.dex||[]);state.battle=null;state.ws=null;state.players=new Map();state.online=false;return true}catch{return false}}
 
 const INTRO_LINES=[
  "？？？「待ってくれ！」",
@@ -73,6 +73,7 @@ function preloadIntroPokemon(){
   for(const n of ["psyduck","lotad"]){getPokemon(n).then(p=>{const im=new Image();im.src=p.sprite;introImages[n]=im})}
 }
 function drawIntro(){
+  if(introState.ended)return;
   const c=$("introCanvas"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30;
   ctx.clearRect(0,0,w,h);
   const g=ctx.createLinearGradient(0,0,0,h);g.addColorStop(0,"#9ed1df");g.addColorStop(.48,"#cde5cf");g.addColorStop(.49,"#82ba70");g.addColorStop(1,"#6ca35e");ctx.fillStyle=g;ctx.fillRect(0,0,w,h);
@@ -97,18 +98,19 @@ function drawIntro(){
     $("introText").textContent=INTRO_LINES[introState.line];
     $("introNext").textContent=introState.line>=INTRO_LINES.length-1?"相棒を選ぶ":"つぎへ";
   }else{$("introText").textContent="池のそばで、博士を待っている……";$("introNext").textContent="待つ";}
-  requestAnimationFrame(drawIntro);
+  introState.raf=requestAnimationFrame(drawIntro);
 }
 function startIntro(){
+  if(introState.raf)cancelAnimationFrame(introState.raf);
   introState.start=performance.now();introState.line=0;introState.ended=false;show("introScreen");preloadIntroPokemon();drawIntro();
 }
 function introAdvance(){
   const elapsed=performance.now()-introState.start;
   if(elapsed<1800){introState.start-=1600;return}
   if(introState.line<INTRO_LINES.length-1){introState.line++;return}
-  introState.ended=true;show("starterScreen");
+  introState.ended=true;if(introState.raf)cancelAnimationFrame(introState.raf);show("starterScreen");
 }
-function skipIntro(){introState.ended=true;show("starterScreen")}
+function skipIntro(){introState.ended=true;if(introState.raf)cancelAnimationFrame(introState.raf);show("starterScreen")}
 async function starterCards(){
   const box=$("starterGrid");box.innerHTML="";
   for(const id of STARTERS){try{const p=await getPokemon(id);const b=document.createElement("button");b.className="starter-card";b.innerHTML="<img src='"+p.sprite+"' alt=''><h3>"+p.nameJa+"</h3><span class='type'>"+p.types.join(" / ")+"</span><p class='muted'>"+p.name+"</p>";b.onclick=()=>startNew(id);box.appendChild(b)}catch{}}
@@ -279,7 +281,7 @@ async function enemyTurn(){
   if(!state.battle)return;const p=playerMon(),e=enemyMon(),m=e.moves[Math.floor(Math.random()*e.moves.length)],r=await damage(e,p,m);setBattleText(r.text);updateBattleBars();if(p.currentHp<=0){await forcedSwitch();return}const s=endStatus(p);if(s)setBattleText(r.text+" "+s);updateBattleBars()
 }
 async function forcedSwitch(){const alive=state.party.some((p,i)=>p.currentHp>0&&i!==state.battle.playerIndex);if(!alive){state.battle=null;show("gameScreen");healParty();msg("手持ちが全員ひんしになった。ポケモンセンターへ戻った。");renderAll();return}buildSwitch();pokemonMenu();setBattleText("次のポケモンを選んでください。")}
-function gainExp(p,enemy,mult=1){const n=Math.max(1,Math.floor(enemy.baseExp*enemy.level/7*mult));p.exp+=n;return levelUp(p)}
+async function gainExp(p,enemy,mult=1){const n=Math.max(1,Math.floor(enemy.baseExp*enemy.level/7*mult));p.exp+=n;return levelUp(p)}
 async function levelUp(p){
   while(p.exp>=p.level**3-((p.level-1)**3)){const need=p.level**3-((p.level-1)**3);p.exp-=need;p.level++;const old=p.stats.hp;p.stats=statCalc(p.baseStats,p.level);p.currentHp+=p.stats.hp-old;setBattleText(p.nameJa+"はレベル"+p.level+"になった！");try{await tryEvolution(p)}catch{}}
   return true
@@ -291,7 +293,7 @@ async function tryEvolution(p){
   const oldRatio=p.currentHp/p.stats.hp,newMon=await makeMon(next.name,p.level,p.isTrainer);newMon.uid=p.uid;newMon.exp=p.exp;newMon.currentHp=Math.max(1,Math.round(newMon.stats.hp*oldRatio));Object.assign(p,newMon);state.dex.add(p.species);setBattleText("おめでとう！ "+p.nameJa+"に進化した！")
 }
 async function afterEnemyFaint(){
-  const defeated=enemyMon(),p=playerMon();gainExp(p,defeated,state.battle.wild?1:1.5);
+  const defeated=enemyMon(),p=playerMon();await gainExp(p,defeated,state.battle.wild?1:1.5);
   if(state.battle.enemyIndex<state.battle.enemyTeam.length-1){state.battle.enemyIndex++;await renderBattle();setBattleText(state.battle.trainerName+"は"+enemyMon().nameJa+"を繰り出した！");return}
   if(state.battle.gym){const g=GYMS[state.badges];state.badges++;state.money+=2400;save();state.battle=null;show("gameScreen");renderAll();msg("ジムバッジ「"+g.badge+"」を手に入れた！")}
   else if(state.battle.league){state.leagueIndex++;state.battle=null;show("gameScreen");renderAll();if(state.leagueIndex<LEAGUE.length)msg("勝利！ 次の四天王へ進もう。");else{state.storyComplete=true;msg("ポケモンリーグ制覇！ 新たなチャンピオンになった！");}save()}
