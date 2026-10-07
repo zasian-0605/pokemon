@@ -1,6 +1,7 @@
 const $=id=>document.getElementById(id),API="/api",SAVE="pokemon-star-v2",VERSION=7;
 const STARTERS=["bulbasaur","charmander","squirtle"],ENCOUNTERS=["pidgey","rattata","caterpie","pikachu"];
 const NAMES={bulbasaur:"フシギダネ",charmander:"ヒトカゲ",squirtle:"ゼニガメ",pidgey:"ポッポ",rattata:"コラッタ",caterpie:"キャタピー",pikachu:"ピカチュウ",oddish:"ナゾノクサ"};
+const TYPE_JA={normal:"ノーマル",fire:"ほのお",water:"みず",electric:"でんき",grass:"くさ",ice:"こおり",fighting:"かくとう",poison:"どく",ground:"じめん",flying:"ひこう",psychic:"エスパー",bug:"むし",rock:"いわ",ghost:"ゴースト",dragon:"ドラゴン",dark:"あく",steel:"はがね",fairy:"フェアリー"};
 const state={screen:"title",area:"town",x:10,y:11,dir:"down",party:[],money:3000,badges:0,dex:new Set(),items:{potion:5,pokeball:10},battle:null,event:null};
 const cache=new Map(),imgCache=new Map();let raf=0,lastStep=0,frame=0;
 const TILE=32,COLS=20,ROWS=15;
@@ -30,7 +31,7 @@ async function pokemon(name){if(cache.has(name))return cache.get(name);const r=a
 async function moveData(name){const k="m:"+name;if(cache.has(k))return cache.get(k);const r=await fetch(API+"/move/"+name);if(!r.ok)throw Error("move");const m=await r.json();cache.set(k,m);return m}
 function sprite(p,back=false){return "/api/sprite/"+p.id+(back?"?back=1":"")}
 function stats(p,l){const b=Array.isArray(p.stats)?Object.fromEntries(p.stats.map(x=>[x.stat.name,x.base_stat])):p.stats;return{hp:Math.floor((2*b.hp*l)/100)+l+10,attack:Math.floor((2*b.attack*l)/100)+5,defense:Math.floor((2*b.defense*l)/100)+5,spAttack:Math.floor((2*b["special-attack"]*l)/100)+5,spDefense:Math.floor((2*b["special-defense"]*l)/100)+5,speed:Math.floor((2*b.speed*l)/100)+5}}
-async function makeMon(name,lvl){const p=await pokemon(name);const st=stats(p,lvl);const levelMoves=p.moves.filter(x=>x.level<=lvl).sort((a,b)=>b.level-a.level).slice(0,4);const moves=[];for(const q of levelMoves){try{const m=await moveData(q.name);moves.push({name:m.name,nameJa:m.nameJa,type:m.type,power:m.power,accuracy:m.accuracy,pp:m.pp,maxPp:m.pp,damageClass:m.damageClass})}catch{}}if(!moves.length)moves.push({name:"tackle",nameJa:"たいあたり",type:"normal",power:40,accuracy:100,pp:35,maxPp:35,damageClass:"physical"});return{species:p.name,id:p.id,nameJa:p.nameJa||jp(name),types:p.types,abilities:p.abilities,level:lvl,stats:st,currentHp:st.hp,moves,sprite:sprite(p),backSprite:sprite(p,true)}}
+async function makeMon(name,lvl){const p=await pokemon(name);const st=stats(p,lvl);const levelMoves=[...p.moves].filter(x=>x.level<=lvl).sort((a,b)=>b.level-a.level);const moves=[];for(const q of levelMoves){if(moves.some(m=>m.name===q.name))continue;try{const m=await moveData(q.name);if(moves.length<4)moves.push({name:m.name,nameJa:m.nameJa,type:m.type,power:m.power,accuracy:m.accuracy,pp:m.pp,maxPp:m.pp,damageClass:m.damageClass,ailment:m.ailment,ailmentChance:m.ailmentChance,double:m.double,half:m.half,no:m.no})}catch{}}if(!moves.length)moves.push({name:"tackle",nameJa:"たいあたり",type:"normal",power:40,accuracy:100,pp:35,maxPp:35,damageClass:"physical",ailment:"none",ailmentChance:0,double:[],half:[],no:[]});return{species:p.name,id:p.id,nameJa:p.nameJa||jp(name),types:p.types,abilities:p.abilities,level:lvl,stats:st,currentHp:st.hp,moves,sprite:sprite(p),backSprite:sprite(p,true)}}
 async function starterList(){const box=$("starterList");box.innerHTML="";for(const n of STARTERS){const p=await pokemon(n);const b=document.createElement("button");b.className="starter-card";b.innerHTML='<img src="'+sprite(p)+'"><b>'+jp(n,p.nameJa)+'</b><span>'+p.types.join(" / ")+"</span>";b.onclick=()=>newGame(n);box.appendChild(b)}}
 async function newGame(starter){state.area="town";state.x=10;state.y=11;state.money=3000;state.badges=0;state.items={potion:5,pokeball:10};state.dex=new Set();state.party=[await makeMon(starter,5)];state.dex.add(starter);save();show("world");renderWorld();say(jp(starter)+"といっしょに旅に出よう！")}
 function save(){localStorage.setItem(SAVE,JSON.stringify({version:VERSION,area:state.area,x:state.x,y:state.y,dir:state.dir,party:state.party,money:state.money,badges:state.badges,items:state.items,dex:[...state.dex]}));say("セーブした。")}
@@ -55,9 +56,39 @@ function setBattle(t){$("battleMessage").textContent=t;renderBattleUI()}
 function renderBattleUI(){const b=state.battle;if(!b)return;const p=state.party[0],e=b.enemy;$("enemyName").textContent=e.nameJa;$("enemyLevel").textContent="Lv."+e.level;$("playerName").textContent=p.nameJa;$("playerLevel").textContent="Lv."+p.level;$("enemyHP").style.width=Math.max(0,e.currentHp/e.stats.hp*100)+"%";$("playerHP").style.width=Math.max(0,p.currentHp/p.stats.hp*100)+"%"}
 function drawBattle(){const c=$("battleCanvas"),ctx=c.getContext("2d");ctx.clearRect(0,0,960,540);const f=frame%6;ctx.fillStyle="#a8d1dd";ctx.fillRect(0,0,960,290);ctx.fillStyle="#80b765";ctx.fillRect(0,290,960,250);ctx.fillStyle="#6c9957";ctx.beginPath();ctx.ellipse(730,285,190,50,0,0,7);ctx.fill();ctx.beginPath();ctx.ellipse(260,470,260,65,0,0,7);ctx.fill();const e=state.battle?.enemy,p=state.party[0];if(e)drawSprite(ctx,e.sprite,650,145,220,220,f);if(p)drawSprite(ctx,p.backSprite||p.sprite,100,290,260,260,f)}
 function drawSprite(ctx,src,x,y,w,h,f){let im=imgCache.get(src);if(!im){im=new Image();im.src=src;imgCache.set(src,im)}if(im.complete)ctx.drawImage(im,x,y+(f%2),w,h)}
-async function attack(move){const b=state.battle;if(!b)return;const p=state.party[0],e=b.enemy;const power=move.power||40;const type=move.type||"normal";const mult=e.types.includes(type)?1.2:1;const dmg=Math.max(1,Math.floor((((2*p.level/5+2)*power*(p.stats.attack/p.stats.defense))/50+2)*mult));e.currentHp=Math.max(0,e.currentHp-dmg);setBattle(p.nameJa+"の"+move.nameJa+"！ "+dmg+"のダメージ！");if(e.currentHp<=0){setTimeout(()=>{state.battle=null;show("world");say("野生の"+e.nameJa+"を倒した！");},900);return}setTimeout(()=>enemyTurn(),700)}
-async function enemyTurn(){const b=state.battle;if(!b)return;const p=state.party[0],e=b.enemy,m=e.moves[0],d=Math.max(1,Math.floor((2*e.level/5+2)*(m.power||40)*e.stats.attack/e.stats.defense/10));p.currentHp=Math.max(0,p.currentHp-d);setBattle("野生の"+e.nameJa+"の"+m.nameJa+"！");if(p.currentHp<=0)setTimeout(()=>{p.currentHp=p.stats.hp;state.battle=null;show("world");say("ポケモンセンターへ戻った。")},900)}
-function showMoves(){const box=$("moves");box.classList.remove("hidden");$("battleCommands").classList.add("hidden");box.innerHTML=state.party[0].moves.map((m,i)=>'<button data-move="'+i+'">'+m.nameJa+'<br><small>'+m.type+" PP "+m.pp+"/"+m.maxPp+"</small></button>").join("");box.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{const m=state.party[0].moves[+b.dataset.move];box.classList.add("hidden");$("battleCommands").classList.remove("hidden");attack(m)})}
+function firstAlive(){return state.party.findIndex(p=>p.currentHp>0)}
+function effectiveness(move,defender){let mult=1;for(const t of defender.types||[]){if((move.no||[]).includes(t))mult*=0;else if((move.double||[]).includes(t))mult*=2;else if((move.half||[]).includes(t))mult*=.5}return mult}
+function calcDamage(attacker,defender,move){if(move.damageClass==="status"||!move.power)return{damage:0,mult:1,critical:false};const atk=move.damageClass==="special"?attacker.stats.spAttack:attacker.stats.attack;const def=move.damageClass==="special"?defender.stats.spDefense:defender.stats.defense;const critical=Math.random()<1/24;const critMult=critical?2:1;const stab=(attacker.types||[]).includes(move.type)?1.5:1;const mult=effectiveness(move,defender);const rand=.85+Math.random()*.15;const base=Math.floor((((2*attacker.level/5+2)*move.power*atk/def)/50)+2);return{damage:mult===0?0:Math.max(1,Math.floor(base*critMult*stab*mult*rand)),mult,critical}}
+async function attack(move){
+ const b=state.battle;if(!b)return;const p=state.party[0],e=b.enemy;
+ if(move.pp<=0){setBattle("その技のPPがない！");return}
+ move.pp--;const hit=Math.random()*100<=move.accuracy;
+ if(!hit){setBattle(p.nameJa+"の"+move.nameJa+"！ しかし、こうげきは外れた！");setTimeout(enemyTurn,650);return}
+ if(move.damageClass==="status"||!move.power){setBattle(p.nameJa+"の"+move.nameJa+"！");setTimeout(enemyTurn,650);return}
+ const r=calcDamage(p,e,move);e.currentHp=Math.max(0,e.currentHp-r.damage);
+ let text=p.nameJa+"の"+move.nameJa+"！ "+(r.damage?"こうげき！":"こうかがない！");
+ if(r.critical)text+=" 急所に当たった！";
+ if(r.mult===0)text+=" 効果がないようだ。";else if(r.mult>=2)text+=" 効果はばつぐんだ！";else if(r.mult<1)text+=" 効果はいまひとつのようだ。";
+ setBattle(text);
+ if(e.currentHp<=0){gainExp(p,e);setTimeout(()=>{state.battle=null;show("world");say("野生の"+e.nameJa+"を倒した！");save()},1100);return}
+ setTimeout(enemyTurn,750)
+}
+async function enemyTurn(){
+ const b=state.battle;if(!b)return;const p=state.party[0],e=b.enemy;
+ const alive=firstAlive();if(alive<0)return;
+ const usable=e.moves.find(m=>m.pp>0)||e.moves[0];if(usable.pp>0)usable.pp--;
+ const hit=Math.random()*100<=usable.accuracy;
+ if(!hit){setBattle("野生の"+e.nameJa+"の"+usable.nameJa+"！ しかし、こうげきは外れた！");return}
+ if(usable.damageClass==="status"||!usable.power){setBattle("野生の"+e.nameJa+"の"+usable.nameJa+"！");return}
+ const r=calcDamage(e,p,usable);p.currentHp=Math.max(0,p.currentHp-r.damage);
+ let text="野生の"+e.nameJa+"の"+usable.nameJa+"！";
+ if(r.critical)text+=" 急所に当たった！";if(r.mult===0)text+=" 効果がない！";else if(r.mult>=2)text+=" 効果はばつぐんだ！";else if(r.mult<1)text+=" 効果はいまひとつのようだ！";
+ setBattle(text);
+ if(p.currentHp<=0){setTimeout(()=>{p.currentHp=p.stats.hp;state.battle=null;show("world");say("目の前がまっくらになった…… ポケモンセンターへ戻った。");save()},1000)}
+}
+function gainExp(p,e){const gained=Math.max(1,Math.floor((e.baseExp||20)*e.level/7));p.exp=(p.exp||0)+gained;while(p.exp>=p.level*p.level*10){p.exp-=p.level*p.level*10;p.level++;const old=p.stats.hp;p.stats=statsForMon(p,p.level);p.currentHp+=p.stats.hp-old;setBattle(p.nameJa+"は Lv."+p.level+" に上がった！")}}
+function statsForMon(mon,level){const base={hp:mon._base?.hp||mon.stats.hp,attack:mon._base?.attack||mon.stats.attack,defense:mon._base?.defense||mon.stats.defense,spAttack:mon._base?.spAttack||mon.stats.spAttack,spDefense:mon._base?.spDefense||mon.stats.spDefense,speed:mon._base?.speed||mon.stats.speed};return base.hp===mon.stats.hp?mon.stats:mon.stats}
+function showMoves(){const box=$("moves");box.classList.remove("hidden");$("battleCommands").classList.add("hidden");box.innerHTML=state.party[0].moves.map((m,i)=>'<button data-move="'+i+'" '+(m.pp<=0?"disabled":"")+'>'+m.nameJa+'<br><small>'+TYPE_JA[m.type]+' '+m.pp+'/'+m.maxPp+' PP</small></button>').join("")+'<button data-back="1">もどる</button>';box.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{if(b.dataset.back){box.classList.add("hidden");$("battleCommands").classList.remove("hidden");return}const m=state.party[0].moves[+b.dataset.move];box.classList.add("hidden");$("battleCommands").classList.remove("hidden");attack(m)})}
 function menuOpen(){ $("menuPanel").classList.remove("hidden");$("menuInfo").textContent="図鑑 "+state.dex.size+"匹 / バッジ "+state.badges}
 document.addEventListener("keydown",e=>{const k=e.key.toLowerCase();if(state.screen==="world"){if(k==="arrowup"||k==="w")stepDir(0,-1);else if(k==="arrowdown"||k==="s")stepDir(0,1);else if(k==="arrowleft"||k==="a")stepDir(-1,0);else if(k==="arrowright"||k==="d")stepDir(1,0);else if(k==="e"||k==="enter"){
   const t=tileAt(state.x,state.y);
