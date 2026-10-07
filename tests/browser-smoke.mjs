@@ -97,8 +97,16 @@ for(const key of ['ArrowDown','ArrowDown','ArrowDown','ArrowLeft','ArrowLeft','A
   const battle=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
   if(battle)break;
 }
-const battleVisible=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
-if(!battleVisible)throw new Error("wild battle did not start");
+let battleVisible=false;
+for(let i=0;i<40;i++){
+  battleVisible=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
+  if(battleVisible)break;
+  await sleep(500);
+}
+if(!battleVisible){
+  const msg=await p.evalJS("document.getElementById('fieldMessage')?.textContent||''");
+  throw new Error("wild battle did not start; fieldMessage="+msg);
+}
 const enemyName=await p.evalJS("document.getElementById('enemyName').textContent");
 if(!enemyName||enemyName==="？？？")throw new Error("battle opponent was not rendered");
 const battleButtonStyle=await p.evalJS("getComputedStyle(document.getElementById('enemySprite')).position");
