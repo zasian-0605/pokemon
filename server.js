@@ -83,7 +83,7 @@ app.get("/api/sprite/:id",async(req,res)=>{
 });
 app.use(express.static(".",{index:"index.html"}));
 
-function roomView(r){return{id:r.id,players:[...r.players.values()].map(p=>({id:p.id,name:p.name,x:p.x,y:p.y})),max:MAX_PLAYERS}}
+function roomView(r){return{id:r.id,players:[...r.players.values()].map(p=>({id:p.id,name:p.name,x:p.x,y:p.y,area:p.area||"town"})),max:MAX_PLAYERS}}
 const send=(ws,m)=>{if(ws.readyState===1)ws.send(JSON.stringify(m))};
 function broadcast(r,m,skip){for(const p of r.players.values())if(p.id!==skip)send(p.ws,m)}
 function getRoom(){
@@ -98,15 +98,15 @@ wss.on("connection",ws=>{
     let m;try{m=JSON.parse(raw.toString())}catch{return}
     if(m.type==="join"){
       if(self)return;
-      room=getRoom();self={id:crypto.randomUUID(),name:safe(m.name,16)||"旅人",x:50,y:80,ws};
+      room=getRoom();self={id:crypto.randomUUID(),name:safe(m.name,16)||"旅人",x:50,y:80,area:safe(m.area,20)||"town",ws};
       room.players.set(self.id,self);
       send(ws,{type:"joined",selfId:self.id,room:roomView(room)});
       broadcast(room,{type:"player_joined",player:{id:self.id,name:self.name,x:self.x,y:self.y}},self.id);return;
     }
     if(!self||!room)return;
     if(m.type==="move"){
-      self.x=Math.min(98,Math.max(2,Number(m.x)||50));self.y=Math.min(96,Math.max(4,Number(m.y)||80));
-      broadcast(room,{type:"player_moved",player:{id:self.id,x:self.x,y:self.y}},self.id);
+      self.x=Math.min(98,Math.max(2,Number(m.x)||50));self.y=Math.min(96,Math.max(4,Number(m.y)||80));self.area=safe(m.area,20)||self.area||"town";
+      broadcast(room,{type:"player_moved",player:{id:self.id,x:self.x,y:self.y,area:self.area}},self.id);
     }else if(m.type==="chat"){
       const text=safe(m.text,120);if(text)broadcast(room,{type:"chat",playerId:self.id,name:self.name,text});
     }else if(m.type==="ping")send(ws,{type:"pong"});
