@@ -479,7 +479,20 @@ async function challengeGym(){
 }
 async function rival(){try{const team=[];for(let i=0;i<TRAINERS[0].team.length;i++)team.push(await makeMon(TRAINERS[0].team[i],TRAINERS[0].levels[i],true));startTrainer(TRAINERS[0].name,team,false,false)}catch{}}
 async function startWild(name,level){
-  if(state.battle)return;try{const e=await makeMon(name,level);state.dex.add(e.species);state.battle={wild:true,trainerName:"",enemyTeam:[e],enemyIndex:0,playerIndex:0,gym:false,league:false};show("battleScreen");await renderBattle();setBattleText("野生の"+e.nameJa+"が現れた！");}catch{msg("野生のポケモンとの接続に失敗した。")}
+  if(state.battle)return;
+  try{
+    const e=await makeMon(name,level);
+    state.dex.add(e.species);
+    state.battle={wild:true,trainerName:"",enemyTeam:[e],enemyIndex:0,playerIndex:0,gym:false,league:false};
+    show("battleScreen");
+    await renderBattle();
+    setBattleText("野生の"+e.nameJa+"が現れた！");
+  }catch(e){
+    const detail=e instanceof Error?e.message:String(e);
+    globalThis.__gameErrors=globalThis.__gameErrors||[];
+    globalThis.__gameErrors.push("startWild: "+detail);
+    msg("野生のポケモンの準備に失敗した。");
+  }
 }
 function startTrainer(name,team,gym,league){state.battle={wild:false,trainerName:name,enemyTeam:team,enemyIndex:0,playerIndex:0,gym:!!gym,league:!!league};show("battleScreen");renderBattle();setBattleText(name+"が勝負をしかけてきた！")}
 async function startLeague(){const l=LEAGUE[state.leagueIndex];if(!l){state.storyComplete=true;msg("ポケモンリーグ制覇！ 君は新たなチャンピオンになった！");save();return}try{const team=[];for(const [n,lv] of l.team)team.push(await makeMon(n,lv,true));startTrainer(l.name,team,false,true)}catch{}}
