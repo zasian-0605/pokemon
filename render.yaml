@@ -1,9 +1,9 @@
 services:
   - type: web
-    name: monster-veil
+    name: pokemon-star-journey
     runtime: node
     plan: free
-    buildCommand: npm install --no-audit --no-fund
+    buildCommand: npm test && node --check game.js && node --check server.js && npm install --no-audit --no-fund
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
