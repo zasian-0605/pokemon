@@ -62,10 +62,17 @@ const starterCount=await p.evalJS("document.querySelectorAll('#starterGrid .star
 if(starterCount<3)throw new Error("starter cards did not load: "+starterCount);
 
 await p.evalJS("document.querySelector('#starterGrid .starter-card').click()");
-await sleep(1600);
-
-const gameVisible=await p.evalJS("!document.getElementById('gameScreen').classList.contains('hidden')");
-if(!gameVisible)throw new Error("game screen did not open");
+let gameVisible=false;
+for(let i=0;i<40;i++){
+  gameVisible=await p.evalJS("!document.getElementById('gameScreen').classList.contains('hidden')");
+  if(gameVisible)break;
+  await sleep(500);
+}
+if(!gameVisible){
+  const stateText=await p.evalJS("([...document.querySelectorAll('.screen')].map(x=>x.id+':'+x.className).join(' || '))");
+  const partyText=await p.evalJS("document.getElementById('partyList')?.innerText||''");
+  throw new Error("game screen did not open; screens="+stateText+" party="+partyText);
+}
 
 const computed=await p.evalJS("(()=>{const a=getComputedStyle(document.querySelector('.battle-card')||document.querySelector('.field-box'));return {display:a.display,border:a.borderRadius}})()");
 if(!computed.border)throw new Error("current CSS did not apply to active game elements");
