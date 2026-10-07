@@ -7,3 +7,5 @@ services:
     startCommand: npm start
     autoDeploy: true
     healthCheckPath: /health
+
+# Release validation: deterministic Node checks
