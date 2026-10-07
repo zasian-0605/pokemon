@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" shape-rendering="crispEdges">
+<path fill="#172638" d="M8 2h16v2h4v3h2v6h-9v2H5v-2H3V9h3V5h2z"/><path fill="#e5534b" d="M9 3h14v2h4v4h2v2h-9v2H8v-2H5V9h3V5h1z"/><path fill="#f6c86f" d="M12 5h9v2h-9z"/><path fill="#b83840" d="M8 10h16v2H8z"/>
+<path fill="#562d2c" d="M7 13h18v9h-2v3h-3v3h-8v-3H9v-3H7z"/><path fill="#e8b18b" d="M11 17h10v5H11z"/>
+<path fill="#f3cf71" d="M12 26h8v3h-8z"/><path fill="#dd534b" d="M14 27h4v2h-4z"/>
+<path fill="#182d45" d="M8 29h4v-2h3v3h3v-3h3v2h4v8h-3v2H10v-2H8z"/>
+<!-- backpack --> <path fill="#8c5c3d" d="M8 29h5v7h-3v2H8zM19 29h5v9h-3v-2h-2z"/><path fill="#d4a766" d="M9 30h3v5H9zM20 30h3v5h-3z"/><path fill="#f3cf71" d="M9 34h3v1H9zM20 34h3v1h-3z"/>
+<path fill="#263c59" d="M10 37h5v3h-5zM18 37h5v3h-5z"/><path fill="#172638" d="M9 39h6v1H9zM18 39h6v1h-6z"/></svg>

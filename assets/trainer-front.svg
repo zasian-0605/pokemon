@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 32 40" shape-rendering="crispEdges">
+<!-- cap --> <path fill="#172638" d="M8 2h16v2h4v3h2v6h-9v2H5v-2H3V9h3V5h2z"/><path fill="#e5534b" d="M9 3h14v2h4v4h2v2h-9v2H8v-2H5V9h3V5h1z"/><path fill="#f6c86f" d="M12 5h9v2h-9z"/><path fill="#b83840" d="M8 10h16v2H8z"/>
+<!-- hair and face --> <path fill="#562d2c" d="M7 13h4v7H8v3H5v-7h2zM22 13h4v9h-3v-3h-1z"/><path fill="#e8b18b" d="M11 13h11v2h2v8h-2v3H10v-3H8v-7h3z"/><path fill="#c9806a" d="M10 22h2v2h8v2h-9v-2h-1z"/><path fill="#26364a" d="M11 17h3v2h-3zM19 17h3v2h-3z"/><path fill="#fff3d7" d="M12 17h1v1h-1zM20 17h1v1h-1z"/><path fill="#8f4e46" d="M15 22h3v1h-3z"/>
+<!-- neck + scarf --> <path fill="#d79877" d="M13 26h7v3h-7z"/><path fill="#f3cf71" d="M11 26h10v3H11z"/><path fill="#dd534b" d="M14 27h4v2h-4z"/>
+<!-- coat --> <path fill="#182d45" d="M8 29h4v-2h3v3h3v-3h3v2h4v8h-3v2H10v-2H8z"/><path fill="#2e5471" d="M10 30h4v7h-4zM19 30h4v7h-4z"/><path fill="#e7e3d3" d="M14 30h4v2h-2v5h-2z"/><path fill="#f4d078" d="M15 33h2v2h-2z"/>
+<!-- sleeves / hands --> <path fill="#172638" d="M5 30h4v7H6v-2H4v-3h1zM23 30h4v2h1v3h-2v2h-3z"/><path fill="#e8b18b" d="M5 36h3v2H5zM24 36h3v2h-3z"/>
+<!-- shorts --> <path fill="#263c59" d="M10 37h5v2h-1v1h-4zM18 37h5v3h-4v-1h-1z"/><path fill="#172638" d="M9 39h6v1H9zM18 39h6v1h-6z"/></svg>
