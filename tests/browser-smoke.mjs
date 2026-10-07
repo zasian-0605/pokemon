@@ -83,7 +83,7 @@ const frame2=await p.evalJS("document.getElementById('field').toDataURL('image/p
 if(frame1===frame2)throw new Error("field animation frame did not change");
 
 for(let i=0;i<12;i++){
-  await p.evalJS("window.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))");
+  await p.evalJS("document.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))");
   await sleep(90);
 }
 const frame3=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
@@ -92,7 +92,7 @@ if(frame3===frame2)throw new Error("field did not redraw after movement");
 // Walk from town to Route 1 and force a grass encounter for the real battle-screen check.
 await p.evalJS("Math.random=()=>0.01");
 for(const key of ['ArrowDown','ArrowDown','ArrowDown','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft']){
-  await p.evalJS(`window.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)},bubbles:true}))`);
+  await p.evalJS(`document.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)},bubbles:true}))`);
   await sleep(120);
   const battle=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
   if(battle)break;
