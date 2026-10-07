@@ -236,11 +236,11 @@ function drawGrassTexture(ctx,x,y,w,h,dense=1,time=0){
   for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)drawGrassTile(ctx,tx*TILE,ty*TILE,tx,ty,time);
   if(dense>1)for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)if(seeded(tx,ty,93)>.7)drawFlowerPatch(ctx,tx*TILE,ty*TILE,tx,ty,time);
 }
-function drawFlowers(ctx,x,y,w,h,time=0,0){
+function drawFlowers(ctx,x,y,w,h,time=0){
   const sx=Math.floor(x/TILE),sy=Math.floor(y/TILE),ex=Math.ceil((x+w)/TILE),ey=Math.ceil((y+h)/TILE);
   for(let ty=sy;ty<ey;ty++)for(let tx=sx;tx<ex;tx++)drawFlowerPatch(ctx,tx*TILE,ty*TILE,tx,ty,time);
 }
-function drawTree(ctx,x,y,scale=1,time=0,0){
+function drawTree(ctx,x,y,scale=1,time=0){
   const s=scale,frame=animFrame(time),bob=stepped([0,0,-1,-1,0,1],frame);
   ctx.save();ctx.translate(Math.round(x),Math.round(y+bob));ctx.imageSmoothingEnabled=false;
   pxRect(ctx,-10*s,20*s,20*s,7*s,"#526a45");pxRect(ctx,-7*s,8*s,14*s,23*s,"#754e35");pxRect(ctx,-9*s,9*s,5*s,18*s,"#8d6040");
@@ -277,7 +277,7 @@ function drawPond(ctx,x,y,w,h,time=0){
     }
   }
 }
-function drawBuilding(ctx,x,y,label,type="house",time=0,0){
+function drawBuilding(ctx,x,y,label,type="house",time=0){
   const bx=x*TILE,by=y*TILE,w=150,h=120,frame=animFrame(time);
   const roof=type==="gym"?"#536f8c":type==="shop"?"#c35b45":type==="lab"?"#708da0":"#b55d4d";
   const wall=type==="gym"?"#d3dbe3":type==="shop"?"#efc989":type==="lab"?"#d9e5ea":"#e9d7bd";
