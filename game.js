@@ -95,9 +95,14 @@ function drawIntro(){
   ctx.fillStyle="#f0c8aa";ctx.beginPath();ctx.arc(profX,profY-4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f1f3f4";ctx.fillRect(profX-12,profY-18,24,8);ctx.fillStyle="#7896aa";ctx.fillRect(profX+8,profY+2,7,18);
   ctx.fillStyle="#3e5f74";ctx.font="bold 17px sans-serif";ctx.fillText("湖畔の朝",28,34);
   if(elapsed>3100||introState.line>0){
+    $("introSpeaker").textContent=introState.line===0?"？？？": "アサギ博士";
     $("introText").textContent=INTRO_LINES[introState.line];
     $("introNext").textContent=introState.line>=INTRO_LINES.length-1?"相棒を選ぶ":"つぎへ";
-  }else{$("introText").textContent="池のそばで、博士を待っている……";$("introNext").textContent="待つ";}
+  }else{
+    $("introSpeaker").textContent="ナレーション";
+    $("introText").textContent="池のそばで、博士を待っている……";
+    $("introNext").textContent="待つ";
+  }
   introState.raf=requestAnimationFrame(drawIntro);
 }
 function startIntro(){
