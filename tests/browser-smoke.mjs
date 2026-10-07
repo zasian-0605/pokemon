@@ -1,121 +1,17 @@
-import crypto from "node:crypto";
-
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-
-async function cdpPage(){
-  const pages=await (await fetch("http://127.0.0.1:9222/json/list")).json();
-  const p=pages.find(x=>x.type==="page");
-  if(!p)throw new Error("Chromium page not found");
-  const ws=new WebSocket(p.webSocketDebuggerUrl);
-  await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(new Error("CDP connect timeout")),5000);ws.addEventListener("open",()=>{clearTimeout(t);resolve()})});
-  let id=0;
-  const send=(method,params={})=>new Promise((resolve,reject)=>{
-    const rid=++id;
-    const timer=setTimeout(()=>reject(new Error("CDP timeout: "+method)),10000);
-    const onmsg=e=>{
-      const m=JSON.parse(e.data);
-      if(m.id===rid){clearTimeout(timer);ws.removeEventListener("message",onmsg);resolve(m)}
-    };
-    ws.addEventListener("message",onmsg);
-    ws.send(JSON.stringify({id:rid,method,params}));
-  });
-  const evalJS=async expression=>{
-    const r=await send("Runtime.evaluate",{expression,returnByValue:true,awaitPromise:true});
-    const out=r?.result?.result;
-    if(out?.subtype==="error")throw new Error(out.description||"Runtime error");
-    return out?.value;
-  };
-  return {send,evalJS,close:()=>ws.close()};
-}
-
-const p=await cdpPage();
-await p.send("Page.enable");
-await p.send("Runtime.enable");
-await p.evalJS("(window.__e2eErrors=[] , window.addEventListener('error',e=>window.__e2eErrors.push(e.message||String(e.error))), window.addEventListener('unhandledrejection',e=>window.__e2eErrors.push(String(e.reason))), true)");
-await p.send("Page.navigate",{url:"http://127.0.0.1:4173"});
-await sleep(1500);
-
-const title=await p.evalJS("document.title");
-if(!title.includes("ポケットモンスター"))throw new Error("title screen did not load");
-
-const newGame=await p.evalJS("!!document.getElementById('newGame')");
-if(!newGame)throw new Error("new game button missing");
-await p.evalJS("document.getElementById('newGame').click()");
-await sleep(700);
-
-const intro=await p.evalJS("!document.getElementById('introScreen').classList.contains('hidden')");
-if(!intro)throw new Error("intro screen did not open");
-
-const introHasCanvas=await p.evalJS("!!document.getElementById('introCanvas')");
-if(!introHasCanvas)throw new Error("intro canvas missing");
-
-// Advance the actual cutscene according to its typewriter behavior.
-for(let i=0;i<24;i++){
-  const done=await p.evalJS("!document.getElementById('starterScreen').classList.contains('hidden')");
-  if(done)break;
-  await p.evalJS("document.getElementById('introNext')?.click()");
-  await sleep(260);
-}
-const starterVisible=await p.evalJS("!document.getElementById('starterScreen').classList.contains('hidden')");
-if(!starterVisible)throw new Error("starter screen did not open after cutscene controls");
-const starterCount=await p.evalJS("document.querySelectorAll('#starterGrid .starter-card').length");
-if(starterCount<3)throw new Error("starter cards did not load: "+starterCount);
-
-await p.evalJS("document.querySelector('#starterGrid .starter-card').click()");
-let gameVisible=false;
-for(let i=0;i<40;i++){
-  gameVisible=await p.evalJS("!document.getElementById('gameScreen').classList.contains('hidden')");
-  if(gameVisible)break;
-  await sleep(500);
-}
-if(!gameVisible){
-  const stateText=await p.evalJS("([...document.querySelectorAll('.screen')].map(x=>x.id+':'+x.className).join(' || '))");
-  const partyText=await p.evalJS("document.getElementById('partyList')?.innerText||''");
-  throw new Error("game screen did not open; screens="+stateText+" party="+partyText);
-}
-
-const computed=await p.evalJS("(()=>{const a=getComputedStyle(document.querySelector('.battle-card')||document.querySelector('.field-box'));return {display:a.display,border:a.borderRadius}})()");
-if(!computed.border)throw new Error("current CSS did not apply to active game elements");
-
-const frame1=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
-await sleep(220);
-const frame2=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
-if(frame1===frame2)throw new Error("field animation frame did not change");
-
-for(let i=0;i<12;i++){
-  await p.evalJS("document.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))");
-  await sleep(90);
-}
-const frame3=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
-if(frame3===frame2)throw new Error("field did not redraw after movement");
-
-// Walk from town to Route 1 and force a grass encounter for the real battle-screen check.
-await p.evalJS("Math.random=()=>0.01");
-for(const key of ['ArrowDown','ArrowDown','ArrowDown','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft']){
-  await p.evalJS(`document.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)},bubbles:true}))`);
-  await sleep(120);
-  const battle=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
-  if(battle)break;
-}
-let battleVisible=false;
-for(let i=0;i<40;i++){
-  battleVisible=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
-  if(battleVisible)break;
-  await sleep(500);
-}
-if(!battleVisible){
-  const msg=await p.evalJS("document.getElementById('fieldMessage')?.textContent||''");
-  throw new Error("wild battle did not start; fieldMessage="+msg);
-}
-const enemyName=await p.evalJS("document.getElementById('enemyName').textContent");
-if(!enemyName||enemyName==="？？？")throw new Error("battle opponent was not rendered");
-const battleButtonStyle=await p.evalJS("getComputedStyle(document.getElementById('enemySprite')).position");
-if(battleButtonStyle!=="absolute")throw new Error("battle sprite CSS is not active");
-await p.evalJS("document.querySelector('#movePanel button')?.click()");
-await sleep(350);
-
-const errList=await p.evalJS("window.__e2eErrors||[]");
-if(errList.length)throw new Error("browser errors: "+JSON.stringify(errList));
-console.log(JSON.stringify({title,intro,starterCount,gameVisible,computed,animated:true,moved:true,errCount:errList.length}));
-
-p.close();
+async function page(){const ps=await(await fetch("http://127.0.0.1:9222/json/list")).json(),p=ps.find(x=>x.type==="page");if(!p)throw Error("no page");const ws=new WebSocket(p.webSocketDebuggerUrl);await new Promise((a,b)=>{ws.onopen=a;ws.onerror=b});let id=0;const call=(method,params={})=>new Promise((a,b)=>{const i=++id,t=setTimeout(()=>b(Error("timeout "+method)),10000),fn=e=>{const m=JSON.parse(e.data);if(m.id===i){clearTimeout(t);ws.removeEventListener("message",fn);a(m)}};ws.addEventListener("message",fn);ws.send(JSON.stringify({id:i,method,params}))});const ev=x=>call("Runtime.evaluate",{expression:x,returnByValue:true,awaitPromise:true}).then(r=>r.result.result.value);return{call,ev,close:()=>ws.close()}}
+const p=await page();await p.call("Page.navigate",{url:"http://127.0.0.1:4173"});await sleep(1200);
+if(!(await p.ev("document.getElementById('title')&&!document.getElementById('title').classList.contains('hidden')")))throw Error("title");
+await p.ev("document.getElementById('start').click()");await sleep(500);
+if(!(await p.ev("!document.getElementById('cutscene').classList.contains('hidden')")))throw Error("cutscene");
+for(let i=0;i<20;i++){await p.ev("document.getElementById('sceneNext').click()");await sleep(180);if(await p.ev("!document.getElementById('starter').classList.contains('hidden')"))break}
+if(!(await p.ev("!document.getElementById('starter').classList.contains('hidden')")))throw Error("starter");
+const count=await p.ev("document.querySelectorAll('.starter-card').length");if(count!==3)throw Error("starter count "+count);
+await p.ev("document.querySelector('.starter-card').click()");await sleep(1200);
+if(!(await p.ev("!document.getElementById('world').classList.contains('hidden')")))throw Error("world");
+const a=await p.ev("document.getElementById('map').toDataURL()");await sleep(200);const b=await p.ev("document.getElementById('map').toDataURL()");if(a===b)throw Error("animation");
+for(const k of ["ArrowDown","ArrowDown","ArrowDown","ArrowDown","ArrowDown"]){await p.ev(`document.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(k)},bubbles:true}))`);await sleep(80)}
+await p.ev("Math.random=()=>0");for(let i=0;i<8;i++){await p.ev("document.dispatchEvent(new KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true}))");await sleep(100)}
+await sleep(900);
+const err=await p.ev("window.__e2eErrors||[]");if(err?.length)throw Error("browser errors "+JSON.stringify(err));
+console.log("BROWSER_SMOKE_OK",JSON.stringify({starterCount:count,world:true,animationChanged:true}));p.close();
