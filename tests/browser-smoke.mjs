@@ -89,6 +89,23 @@ for(let i=0;i<12;i++){
 const frame3=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
 if(frame3===frame2)throw new Error("field did not redraw after movement");
 
+// Walk from town to Route 1 and force a grass encounter for the real battle-screen check.
+await p.evalJS("Math.random=()=>0.01");
+for(const key of ['ArrowDown','ArrowDown','ArrowDown','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft','ArrowLeft']){
+  await p.evalJS(`window.dispatchEvent(new KeyboardEvent('keydown',{key:${JSON.stringify(key)},bubbles:true}))`);
+  await sleep(120);
+  const battle=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
+  if(battle)break;
+}
+const battleVisible=await p.evalJS("!document.getElementById('battleScreen').classList.contains('hidden')");
+if(!battleVisible)throw new Error("wild battle did not start");
+const enemyName=await p.evalJS("document.getElementById('enemyName').textContent");
+if(!enemyName||enemyName==="？？？")throw new Error("battle opponent was not rendered");
+const battleButtonStyle=await p.evalJS("getComputedStyle(document.getElementById('enemySprite')).position");
+if(battleButtonStyle!=="absolute")throw new Error("battle sprite CSS is not active");
+await p.evalJS("document.querySelector('#movePanel button')?.click()");
+await sleep(350);
+
 const errList=await p.evalJS("window.__e2eErrors||[]");
 if(errList.length)throw new Error("browser errors: "+JSON.stringify(errList));
 console.log(JSON.stringify({title,intro,starterCount,gameVisible,computed,animated:true,moved:true,errCount:errList.length}));
