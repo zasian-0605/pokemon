@@ -75,7 +75,8 @@ app.get("/api/move/:name",async(req,res)=>{
 });
 app.get("/api/sprite/:id",async(req,res)=>{
   try{
-    const r=await fetch("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/"+encodeURIComponent(req.params.id)+".png");
+    const pose=req.query.back==="1"?"back/":"";
+    const r=await fetch("https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/"+pose+encodeURIComponent(req.params.id)+".png");
     if(!r.ok) throw new Error("sprite HTTP "+r.status);
     res.set("Cache-Control","public,max-age=86400").type("png").send(Buffer.from(await r.arrayBuffer()));
   }catch{res.status(404).end()}
