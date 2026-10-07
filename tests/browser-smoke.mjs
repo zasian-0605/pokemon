@@ -31,6 +31,7 @@ async function cdpPage(){
 const p=await cdpPage();
 await p.send("Page.enable");
 await p.send("Runtime.enable");
+await p.evalJS("(window.__e2eErrors=[] , window.addEventListener('error',e=>window.__e2eErrors.push(e.message||String(e.error))), window.addEventListener('unhandledrejection',e=>window.__e2eErrors.push(String(e.reason))), true)");
 await p.send("Page.navigate",{url:"http://127.0.0.1:4173"});
 await sleep(1500);
 
@@ -48,9 +49,15 @@ if(!intro)throw new Error("intro screen did not open");
 const introHasCanvas=await p.evalJS("!!document.getElementById('introCanvas')");
 if(!introHasCanvas)throw new Error("intro canvas missing");
 
-// Advance the actual cutscene several times.
-for(let i=0;i<8;i++){await p.evalJS("document.getElementById('introNext').click()");await sleep(220);}
-
+// Advance the actual cutscene according to its typewriter behavior.
+for(let i=0;i<24;i++){
+  const done=await p.evalJS("!document.getElementById('starterScreen').classList.contains('hidden')");
+  if(done)break;
+  await p.evalJS("document.getElementById('introNext')?.click()");
+  await sleep(260);
+}
+const starterVisible=await p.evalJS("!document.getElementById('starterScreen').classList.contains('hidden')");
+if(!starterVisible)throw new Error("starter screen did not open after cutscene controls");
 const starterCount=await p.evalJS("document.querySelectorAll('#starterGrid .starter-card').length");
 if(starterCount<3)throw new Error("starter cards did not load: "+starterCount);
 
@@ -75,7 +82,8 @@ for(let i=0;i<12;i++){
 const frame3=await p.evalJS("document.getElementById('field').toDataURL('image/png')");
 if(frame3===frame2)throw new Error("field did not redraw after movement");
 
-const errCount=await p.evalJS("window.__e2eErrors?.length||0");
-console.log(JSON.stringify({title,intro,starterCount,gameVisible,computed,animated:true,moved:true,errCount}));
+const errList=await p.evalJS("window.__e2eErrors||[]");
+if(errList.length)throw new Error("browser errors: "+JSON.stringify(errList));
+console.log(JSON.stringify({title,intro,starterCount,gameVisible,computed,animated:true,moved:true,errCount:errList.length}));
 
 p.close();
