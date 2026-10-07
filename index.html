@@ -1,241 +1,38 @@
 <!doctype html>
 <html lang="ja">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Pokémon Wild World Prototype</title>
-<style>
-:root{font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#0f172a;color:#f8fafc}
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:radial-gradient(circle at top,#26334d,#0f172a 55%)}
-#app{width:min(980px,96vw);background:#111827;border:1px solid #334155;border-radius:18px;box-shadow:0 20px 70px #0008;overflow:hidden}
-header{padding:18px 22px;border-bottom:1px solid #334155;display:flex;justify-content:space-between;gap:12px;align-items:center}
-h1{font-size:20px;margin:0}
-.badge{padding:6px 10px;border-radius:999px;background:#1e293b;font-size:12px}
-main{padding:18px;display:grid;gap:16px}
-.panel{background:#0b1220;border:1px solid #273449;border-radius:14px;padding:14px}
-#world{position:relative;height:410px;border-radius:12px;overflow:hidden;background:
-linear-gradient(#89b86b 0 0) 0 0/100% 100%,
-repeating-linear-gradient(45deg,#7aa85e 0 12px,#82ae63 12px 24px)}
-#path{position:absolute;inset:0;background:
-linear-gradient(90deg,transparent 0 12%,#d1ad70 12% 28%,transparent 28% 52%,#d1ad70 52% 68%,transparent 68% 100%),
-linear-gradient(0deg,transparent 0 36%,#d1ad70 36% 54%,transparent 54% 100%);opacity:.7}
-.patch{position:absolute;background:#4f873f;border-radius:18px;box-shadow:inset 0 0 0 2px #3f7133}
-#player{position:absolute;width:26px;height:26px;border-radius:7px;background:#fff;border:3px solid #2563eb;transform:translate(-50%,-50%);z-index:4}
-.mon{position:absolute;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;border:2px solid #fff8}
-#hud{display:grid;grid-template-columns:1fr auto auto;gap:10px;align-items:center}
-#log{min-height:56px;line-height:1.55;color:#dbeafe}
-.controls{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
-button{border:1px solid #475569;background:#1e293b;color:#fff;border-radius:10px;padding:11px 10px;font-weight:700;cursor:pointer}
-button:hover{background:#334155}
-button:disabled{opacity:.4;cursor:not-allowed}
-.small{font-size:12px;color:#94a3b8}
-#battle{display:none}
-.battle-box{background:#070d18;border:1px solid #273449;border-radius:14px;padding:16px;display:grid;gap:12px}
-.battle-top{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:end}
-.name{font-size:19px;font-weight:800}
-.level{font-size:13px;color:#94a3b8}
-.bar{height:12px;border-radius:999px;background:#334155;overflow:hidden}
-.fill{height:100%;background:#4ade80;transition:width .25s}
-#enemyFill{width:100%}
-#playerFill{width:100%}
-.bullet-zone{height:190px;border:1px solid #334155;border-radius:12px;position:relative;overflow:hidden;background:#030712}
-#soul{position:absolute;width:14px;height:14px;background:#f87171;transform:translate(-50%,-50%) rotate(45deg);z-index:3}
-.bullet{position:absolute;width:10px;height:10px;border-radius:50%;background:#f8fafc}
-.battle-actions{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
-#moveMenu{display:none;grid-template-columns:repeat(2,1fr);gap:8px}
-#routeText{font-weight:800}
-@media (max-width:700px){#world{height:320px}.controls{grid-template-columns:repeat(2,1fr)}.battle-actions{grid-template-columns:repeat(3,1fr)}#hud{grid-template-columns:1fr 1fr}.battle-top{grid-template-columns:1fr}}
-.online{display:grid;gap:10px}.online-row{display:flex;gap:8px;flex-wrap:wrap}#onlinePanel{display:grid;gap:10px}#onlineStatus{font-weight:800}#roomPlayers{display:grid;gap:4px;font-size:13px;color:#cbd5e1}#chatLog{height:130px;overflow:auto;background:#030712;border:1px solid #273449;border-radius:10px;padding:8px;line-height:1.5}#chatInput{flex:1;min-width:180px;border:1px solid #475569;background:#0f172a;color:#fff;border-radius:10px;padding:10px}#onlineToggle{background:#14532d}</style>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#18222c"><title>MONSTER VEIL - 星境の冒険</title><link rel="stylesheet" href="styles.css">
 </head>
 <body>
 <div id="app">
-<header><h1>Pokémon Wild World — prototype</h1><div class="badge" id="routeBadge">NEUTRAL</div></header>
-<main>
-<div class="panel">
-  <div id="hud"><div><div id="worldName">始まりの草原</div><div class="small">WASD / 矢印キーで移動。草むらに入ると遭遇。</div></div><div>Lv <span id="playerLevel">10</span></div><div>行動値 <span id="karma">0</span></div></div>
-</div>
-<div id="world" aria-label="2D world">
-  <div id="path"></div>
-  <div class="patch" style="left:8%;top:12%;width:18%;height:24%"></div>
-  <div class="patch" style="left:57%;top:12%;width:24%;height:19%"></div>
-  <div class="patch" style="left:28%;top:59%;width:23%;height:27%"></div>
-  <div class="patch" style="left:76%;top:64%;width:15%;height:22%"></div>
-  <div id="player" style="left:50%;top:72%"></div>
-</div>
-<div class="panel"><div id="log">ポケモンたちが暮らす世界。PokeAPIのデータを読み込んで、野生ポケモンを自動生成します。</div><div class="small">会話・調査・逃走は共存寄り。攻撃を繰り返すほど、Gルート側へ傾く。</div></div>
-<div class="panel" id="onlinePanel">  <div><b>オンラインモード</b><div class="small">同じゲームを遊んでいるプレイヤーと最大6人の部屋で一緒に探索できます。</div></div>  <div class="online-row"><button id="onlineToggle" onclick="toggleOnline()">オンラインモード ON</button><span id="onlineStatus" class="small">オフライン</span></div>  <div id="onlineRoom" style="display:none"><div class="small">ルーム</div><b id="roomId">-</b><div id="roomPlayers"></div><div class="online-row"><input id="chatInput" maxlength="120" placeholder="ポケモンの世界でチャット"><button onclick="sendChat()">送信</button></div><div id="chatLog"></div></div></div><div id="exploreActions" class="controls">
-  <button onclick="talkNearby()">話す</button><button onclick="inspectWorld()">調べる</button><button onclick="rest()">休む</button><button onclick="challengeGate()">門のヌシ</button><button onclick="toggleRouteInfo()">ルート情報</button>
-</div>
-
-<div id="battle" class="panel">
-  <div class="battle-box">
-    <div class="battle-top">
-      <div><div class="name" id="enemyName">野生のポケモン</div><div class="level" id="enemyLevel">Lv 30</div></div>
-      <div style="min-width:220px"><div class="small">HP</div><div class="bar"><div class="fill" id="enemyFill"></div></div></div>
-    </div>
-    <div class="small" id="enemyMood">こちらを警戒している。</div>
-    <div class="bullet-zone" id="bulletZone"><div id="soul" style="left:50%;top:50%"></div></div>
-    <div class="battle-top">
-      <div><div class="name">主人公</div><div class="level">Lv <span id="battlePlayerLevel">10</span></div></div>
-      <div style="min-width:220px"><div class="small">HP</div><div class="bar"><div class="fill" id="playerFill"></div></div></div>
-    </div>
-    <div id="battleMessage">どうする？</div>
-    <div class="battle-actions">
-      <button onclick="fightMenu()">たたかう</button>
-      <button onclick="escapeBattle()">にげる</button>
-      <button onclick="inspectEnemy()">しらべる</button>
-      <button onclick="talkEnemy()">はなす</button>
-      <button onclick="itemAction()">どうぐ</button>
-    </div>
-    <div id="moveMenu">
-      <button onclick="useMove('たいあたり',8)">たいあたり</button>
-      <button onclick="useMove('かみつく',12)">かみつく</button>
-      <button onclick="useMove('つばめがえし',14)">つばめがえし</button>
-      <button onclick="useMove('ブレイブバード',18)">ブレイブバード</button>
-    </div>
+  <div id="titleScreen" class="screen">
+    <div class="logo-orb">✦</div><h1>MONSTER VEIL</h1><p>星境の冒険</p>
+    <div class="title-copy">人間とモンスターが、同じ世界で生きる。<br>戦うだけが、仲間になる方法じゃない。</div>
+    <button id="newGameBtn" class="primary">はじめる</button><button id="loadGameBtn">つづきから</button>
+    <div class="tiny">この作品はオリジナルのモンスターと世界観で作られたブラウザゲームです。</div>
   </div>
+  <div id="starterScreen" class="screen hidden"><h2>最初の相棒を選ぼう</h2><p class="muted">炎・草・水。君と旅をしたい子を選んでください。</p><div id="starterList" class="starter-grid"></div></div>
+  <div id="gameScreen" class="hidden">
+    <header><div><strong>MONSTER VEIL</strong><span id="areaName" class="pill">はじまりの原</span></div><div class="header-actions"><span id="routeLabel" class="pill">BALANCE</span><button id="saveBtn">セーブ</button></div></header>
+    <main class="layout">
+      <section class="world-card card"><div id="world" aria-label="フィールド"><div class="sky-glow"></div><div class="path p1"></div><div class="path p2"></div><div class="water"></div><div class="grass g1"></div><div class="grass g2"></div><div class="grass g3"></div><div class="rocks r1"></div><div class="rocks r2"></div><div id="otherPlayers"></div><div id="player"></div></div>
+      <div class="movement"><button data-move="up">▲</button><div><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div></div><div id="message" class="message">草むらが風に揺れている。</div></section>
+      <aside class="side-column">
+        <section class="card panel"><div class="section-head"><h3>相棒</h3><span id="partyCount">1 / 6</span></div><div id="partyList"></div></section>
+        <section class="card panel"><h3>オンライン</h3><div id="onlineStatus" class="muted">オフライン</div><button id="onlineBtn">つながる</button><div id="roomInfo" class="small"></div><div id="chatLog" class="chat"></div><div class="chat-row"><input id="chatInput" maxlength="120" placeholder="チャット"><button id="chatSend">送信</button></div></section>
+        <section class="card panel"><h3>旅の情報</h3><div class="stats-row"><span>Lv</span><b id="levelLabel">3</b></div><div class="stats-row"><span>経験値</span><b id="xpLabel">0 / 38</b></div><div class="stats-row"><span>つかまえた数</span><b id="caughtLabel">1</b></div><button id="bagBtn">どうぐ・図鑑</button></section>
+      </aside>
+    </main>
+  </div>
+  <div id="battleScreen" class="screen hidden"><div class="battle-wrap">
+    <div class="battle-top"><div><span id="enemyLabel">野生</span><h2 id="enemyName">モンスター</h2><div class="muted" id="enemyMeta">Lv.3</div></div><div class="hp-box"><div class="hp-bar"><span id="enemyHp"></span></div><div id="enemyHpText">30 / 30</div></div></div>
+    <div class="battle-arena"><div id="enemyMonster" class="monster-art"></div><div id="battleFx"></div><div id="heroMonster" class="monster-art"></div></div>
+    <div class="player-bar"><div><b id="heroName">相棒</b><div class="muted" id="heroMeta">Lv.3</div></div><div class="hp-box"><div class="hp-bar"><span id="heroHp"></span></div><div id="heroHpText">30 / 30</div></div></div>
+    <div id="battleLog" class="battle-log">どうする？</div><div id="moveGrid" class="move-grid hidden"></div>
+    <div class="battle-menu"><button data-action="fight">たたかう</button><button data-action="talk">はなす</button><button data-action="catch">つかまえる</button><button data-action="item">どうぐ</button><button data-action="run">にげる</button></div>
+  </div></div>
+  <div id="modal" class="modal hidden"><div class="modal-inner"><button id="modalClose" class="modal-close">×</button><div id="modalBody"></div></div></div>
 </div>
-</main>
-</div>
-<script src="./pokeapi.js"></script>
-<script>
-const finalGuardians = ['ミュウツー','レックウザ','ネクロズマ','ザシアン','ギラティナ'];
-const worlds = [
-  {name:'始まりの草原',boss:'ガブリアス',bossLv:35,enc:['ムックル','ポチエナ','イーブイ','ホシガリス']},
-  {name:'深緑の森',boss:'キョダイマックスフシギバナ',bossLv:42,enc:['モロバレル','オーロット','ハッサム','ヤンチャム']},
-  {name:'蒼海の島',boss:'キョダイマックスキングラー',bossLv:48,enc:['ママンボウ','ラプラス','ギャラドス','ペリッパー']},
-  {name:'灼熱砂漠',boss:'メガバンギラス',bossLv:55,enc:['サダイジャ','ドリュウズ','グライオン','ガバイト']},
-  {name:'極寒の雪原',boss:'メガユキノオー',bossLv:62,enc:['グレイシア','マニューラ','ヒスイゾロア','パルシェン']},
-  {name:'太古の化石地帯',boss:'メガプテラ',bossLv:70,enc:['プテラ','アーケン','チゴラス','ウオノラゴン']},
-  {name:'ヒスイ原野',boss:'ヒスイダイケンキ',bossLv:78,enc:['バサギリ','イダイトウ','ガチグマ','ヒスイゾロアーク']},
-  {name:'古代パラドックス領域',boss:'トドロクツキ',bossLv:86,enc:['ハバタクカミ','サケブシッポ','イダイナキバ','スナノケガワ']},
-  {name:'未来パラドックス都市',boss:'テツノイバラ',bossLv:94,enc:['テツノツツミ','テツノカイナ','テツノドクガ','テツノブジン']},
-  {name:'災厄の遺跡',boss:'テラスタルドドゲザン',bossLv:102,enc:['アブソル','ハカドッグ','マフィティフ','サーフゴー']},
-  {name:'時空の裂け目',boss:'メガメタグロス',bossLv:110,enc:['ドラパルト','サザンドラ','ボーマンダ','ブリジュラス']},
-  {name:'終焉の世界',boss:'終焉のヌシ',bossLv:120,enc:['ガブリアス','メタグロス','セグレイブ','ドラパルト']}
-];
-let w=0, pos={x:50,y:72}, battle=null, karma=0, defeated=0, caught=[], battleIndex=0; let online=false, ws=null, onlinePlayers=new Map();
-const $=id=>document.getElementById(id);
-function render(){ $('worldName').textContent=worlds[w].name; $('playerLevel').textContent=10+w*4; $('battlePlayerLevel').textContent=10+w*4; $('karma').textContent=karma; $('player').style.left=pos.x+'%'; $('player').style.top=pos.y+'%'; const r=karma<=-6?'G':karma>=6?'N':'B'; $('routeBadge').textContent=r==='G'?'GENOCIDE':'ROUTE: '+(r==='N'?'NEUTRAL/PEACE':'BATTLE'); }
-function log(t){$('log').textContent=t}
-function move(dx,dy){if($('battle').style.display==='block')return; pos.x=Math.max(3,Math.min(97,pos.x+dx));pos.y=Math.max(4,Math.min(96,pos.y+dy));render(); if(online&&ws?.readyState===1)ws.send(JSON.stringify({type:'move',x:pos.x,y:pos.y})); if((pos.x<30||pos.x>55)&&pos.y<40) maybeEncounter();}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')move(0,-4);if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')move(0,4);if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')move(-4,0);if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')move(4,0)});
-function maybeEncounter(){if(Math.random()<0.14)startBattle(false)}
-function challengeGate(){if($('battle').style.display==='block')return;if(w<worlds.length-1&&w===0&&karma>20)karma=20;startBattle(true)}
-const BOSS_API_NAMES={
-  'ガブリアス':'garchomp',
-  'キョダイマックスフシギバナ':'venusaur-gmax',
-  'キョダイマックスキングラー':'kingler-gmax',
-  'メガバンギラス':'tyranitar-mega',
-  'メガユキノオー':'abomasnow-mega',
-  'メガプテラ':'aerodactyl-mega',
-  'ヒスイダイケンキ':'samurott-hisui',
-  'トドロクツキ':'roaring-moon',
-  'テツノイバラ':'iron-thorns',
-  'テラスタルドドゲザン':'kingambit',
-  'メガメタグロス':'metagross-mega',
-  'ミュウツー':'mewtwo',
-  'レックウザ':'rayquaza',
-  'ネクロズマ':'necrozma',
-  'ザシアン':'zacian',
-  'ギラティナ':'giratina-origin'
-};
-function nushiPuzzle(index){
-  const patterns=[
-    ['run','run','talk'],
-    ['inspect','talk','item'],
-    ['talk','inspect','run'],
-    ['run','inspect','talk','talk'],
-    ['item','run','talk'],
-    ['inspect','run','item','talk'],
-    ['talk','item','inspect','run'],
-    ['run','run','inspect','talk']
-  ];
-  return patterns[index%patterns.length];
-}
-function chooseEncounter(){
-  if(PokeData.list.length){
-    const themed={
-      0:['normal','grass','bug'],1:['grass','bug','poison','fairy'],2:['water','flying','ice'],
-      3:['ground','rock','fire'],4:['ice','dark','steel'],5:['rock','flying','dragon'],
-      6:['water','dark','ground','fighting'],7:['dragon','dark','rock'],8:['electric','steel'],
-      9:['dark','ghost','poison'],10:['psychic','steel','dragon'],11:['dragon','steel','ghost']
-    }[w]||[];
-    const candidates=PokeData.list.filter(x=>x.name&&!x.name.includes('-totem'));
-    if(themed.length){
-      const themedCandidates=[];
-      for(const item of candidates.slice(0,1200)){
-        const cached=PokeData.byName.get(item.name);
-        if(cached?.types?.some(t=>themed.includes(t))) themedCandidates.push(item);
-      }
-      if(themedCandidates.length) return themedCandidates[Math.floor(Math.random()*themedCandidates.length)].name;
-    }
-    return candidates[Math.floor(Math.random()*candidates.length)]?.name||worlds[w].enc[0];
-  }
-  const pool=worlds[w].enc;
-  return pool[Math.floor(Math.random()*pool.length)];
-}
-function startBattle(isBoss){let name=isBoss?worlds[w].boss:chooseEncounter();
-  const apiName=isBoss?(BOSS_API_NAMES[name]||name):name; if(isBoss&&w===worlds.length-1){name=battleIndex<finalGuardians.length?finalGuardians[battleIndex]:worlds[w].boss} const base=isBoss?worlds[w].bossLv:Math.min(35+w*7, worlds[w].bossLv-4);const gBoost=karma<=-6?Math.min(18,Math.floor(Math.abs(karma)*1.2)):0; const lv=base+gBoost; battle={name,lv,isBoss,hp:100,max:100,playerHp:100,mood:isBoss?'門を守っている。':'こちらを警戒している。',last:Date.now(),puzzleIndex:0,puzzle:isBoss?nushiPuzzle(w):null,atOne:false}; $('battle').style.display='block'; $('exploreActions').style.display='none'; $('enemyName').textContent=((isBoss&&w===worlds.length-1&&battleIndex<finalGuardians.length)?'野生の':(isBoss?'ヌシ・':'野生の'))+displayName; $('enemyLevel').textContent='Lv '+lv; $('enemyMood').textContent=battle.mood; $('battleMessage').textContent=poke?('タイプ：'+poke.types.join(' / ')+'　特性：'+(poke.abilities[0]||'不明')):'どうする？'; $('moveMenu').style.display='none'; updateBars(); updateMoveButtons(); requestAnimationFrame(battleLoop)}
-function updateBars(){if(!battle)return;$('enemyFill').style.width=Math.max(0,battle.hp)+'%';$('playerFill').style.width=Math.max(0,battle.playerHp)+'%'}
-async function updateMoveButtons(){
-  const buttons=[...$('moveMenu').querySelectorAll('button')];
-  const moves=(battle?.api?.moves||[]).slice(0,4);
-  buttons.forEach((b,i)=>{
-    const move=moves[i];
-    b.dataset.apiMove=move||'';
-    b.onclick=()=>useMove(move||['tackle','bite','aerial-ace','protect'][i],8+i*3);
-    b.textContent=move||['tackle','bite','aerial-ace','protect'][i];
-  });
-  await Promise.all(buttons.map(async (b,i)=>{
-    const move=moves[i]; if(!move)return;
-    try{
-      const res=await fetch(POKEAPI_BASE+'/move/'+encodeURIComponent(move));
-      if(!res.ok)return;
-      const data=await res.json();
-      const ja=data.names?.find(x=>x.language?.name==='ja');
-      if(ja)b.textContent=ja.name;
-    }catch{}
-  }));
-}
-function fightMenu(){ $('moveMenu').style.display=$('moveMenu').style.display==='grid'?'none':'grid'}
-async function useMove(move,damage){
-  if(!battle)return;
-  $('moveMenu').style.display='none';
-  const apiMove=move&&battle.api?.moves?.includes(move)?move:null;
-  let power=damage;
-  if(apiMove){
-    try{
-      const res=await fetch(POKEAPI_BASE+'/move/'+encodeURIComponent(apiMove));
-      if(res.ok){const data=await res.json();if(Number.isFinite(data.power)&&data.power>0)power=Math.max(4,Math.min(30,Math.round(data.power/4)));}
-    }catch{}
-  }
-  const bonus=karma<=-6?Math.floor(Math.random()*8):0; const dealt=power+bonus; battle.hp=Math.max(0,battle.hp-dealt); karma--; $('battleMessage').textContent='主人公は'+move+'！ '+dealt+'ダメージ。'; if(battle.hp<=1&&battle.isBoss){battle.hp=1;battle.atOne=true;$('battleMessage').textContent+=' ヌシは最後の1で耐えた！ ここからは行動の順番が重要だ。'; render(); return} if(battle.hp<=0){setTimeout(()=>finishBattle(false),500);render();return} enemyTurn()}
-function enemyTurn(){let attacks=karma<=-6? (Math.random()<0.55?2:1):1; const names=karma<=-6?['じしん','げきりん','ストーンエッジ','ドラゴンクロー']:['たいあたり','かみつく','ひっかく']; let total=0; for(let i=0;i<attacks;i++){const dmg=6+Math.floor(Math.random()*8)+Math.max(0,battle.lv-30); total+=dmg; spawnBullet();} battle.playerHp=Math.max(0,battle.playerHp-total); $('battleMessage').textContent=(attacks>1?'怒涛の連続攻撃！ ':'')+names[Math.floor(Math.random()*names.length)]+'！ '+total+'ダメージ。'; updateBars(); if(battle.playerHp<=0){battle.playerHp=100;karma+=2;setTimeout(()=>finishBattle(true),500)}}
-function spawnBullet(){const zone=$('bulletZone');const b=document.createElement('div');b.className='bullet';b.style.left=(10+Math.random()*80)+'%';b.style.top=(10+Math.random()*80)+'%';zone.appendChild(b);setTimeout(()=>b.remove(),650)}
-function puzzleAction(action){if(!battle?.isBoss||!battle.atOne)return false; const expected=battle.puzzle[battle.puzzleIndex]; if(action===expected){battle.puzzleIndex++; if(battle.puzzleIndex>=battle.puzzle.length){finishBoss();return true;} $('battleMessage').textContent='正しい行動だ。ヌシの反応が変わった……（'+battle.puzzleIndex+'/'+battle.puzzle.length+'）';}else{battle.puzzleIndex=0;$('battleMessage').textContent='その行動ではない。ヌシは様子を見ている。最初からやり直しだ。';} return true;}function escapeBattle(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('run'))return;} const chance=karma<=-6?0.25:0.72;if(Math.random()<chance&&!battle.isBoss){karma++;finishBattle(true)}else{$('battleMessage').textContent=battle.isBoss?'ヌシは道を譲らない。':'逃げられない！';enemyTurn()}}
-function inspectEnemy(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('inspect'))return;}karma++;battle.mood='観察されて、少し落ち着いた。';$('enemyMood').textContent=battle.mood;$('battleMessage').textContent=(battle.isBoss?'ヌシ・':'野生の')+battle.name+' Lv.'+battle.lv+'。HP'+Math.max(1,Math.round(battle.hp))+'%。';}
-function talkEnemy(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('talk'))return;} karma+=2;const lines=battle.isBoss?['ヌシは主人公をじっと見た。','ヌシは「力だけで来る者とは違うな」と呟いた。','ヌシの警戒が少し薄れた。']:['ポケモンは「……少しなら話してもいい」と答えた。','ポケモンは主人公の話を聞いている。','ポケモンは少しだけ警戒を解いた。'];$('battleMessage').textContent=lines[Math.floor(Math.random()*lines.length)];if(battle.isBoss&&karma>=6){setTimeout(()=>finishBoss(),700)}else enemyTurn()}
-function itemAction(){if(!battle)return; if(battle.isBoss&&battle.atOne){if(puzzleAction('item'))return;}battle.playerHp=Math.min(100,battle.playerHp+25);karma++;$('battleMessage').textContent='木の実を食べてHPが25回復した。';updateBars();enemyTurn()}
-function finishBattle(escaped){if(!battle)return;const name=battle.name;if(escaped){log('戦闘を終えて、ポケモンは去っていった。')}else{defeated++;log(name+'を倒した。世界の空気が少し変わった。');} battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid';render()}
-function talkNearby(){karma+=2;log('近くのポケモンが振り返った。「こんにちは。ここではポケモンも人間も、自分の意思で生きているよ。」');render()}
-function inspectWorld(){karma+=1;log('調べる：この世界では、ポケモンはPokeAPIの図鑑データを基準にして自動生成される。');render()}
-function rest(){karma+=1;log('草むらで少し休んだ。遠くからポケモンの声が聞こえる。');render()}
-function toggleRouteInfo(){const r=karma<=-6?'Gルート：敵が強くなり、連続攻撃が増える':karma>=6?'N寄り：会話・観察で衝突を避けやすい':'Bルート：戦い方次第でどちらにも傾く';log(r);render()}
-function finishBoss(){const isFinal=w===worlds.length-1; if(isFinal&&battleIndex<finalGuardians.length){const fallen=finalGuardians[battleIndex]; battleIndex++; battle=null; setTimeout(()=>startBattle(true),650); log(fallen+'は倒れた。人に従っていない別の強大なポケモンが現れた。'); return;} const name=isFinal?'終焉のヌシ':worlds[w].boss; caught.push(name); defeated++; battle=null;$('battle').style.display='none';$('exploreActions').style.display='grid'; if(isFinal){log('最後の野生伝説たちを越え、終焉のヌシ '+name+' は最後の1で耐えた後に倒れた。唯一、捕獲できるのはこのヌシだ！最終門が開いた！');}else{w++;pos={x:50,y:72};log('ヌシ '+name+' は最後の1で耐えた後、倒れた。捕獲に成功。次の門が開いた！');}render()}
-function maybeBoss(){startBattle(true)}
-function addChat(line){const el=$('chatLog');el.insertAdjacentHTML('beforeend','<div>'+line.replace(/[<>]/g,'')+'</div>');el.scrollTop=el.scrollHeight}
-function updateRoomPlayers(){const box=$('roomPlayers');box.innerHTML='';for(const p of onlinePlayers.values()){const d=document.createElement('div');d.textContent='👤 '+p.name+' ('+Math.round(p.x)+','+Math.round(p.y)+')';box.appendChild(d)}}
-function toggleOnline(){if(online){ws?.close();online=false;$('onlineStatus').textContent='オフライン';$('onlineRoom').style.display='none';$('onlineToggle').textContent='オンラインモード ON';return;} const proto=location.protocol==='https:'?'wss':'ws';ws=new WebSocket(proto+'://'+location.host); ws.onopen=()=>{online=true;$('onlineStatus').textContent='接続中…';$('onlineToggle').textContent='オンラインモード OFF';ws.send(JSON.stringify({type:'join',name:'プレイヤー'}));}; ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.type==='joined'){online=true;$('onlineStatus').textContent='オンライン参加中';$('onlineRoom').style.display='grid';$('roomId').textContent=m.room.id;onlinePlayers.clear();m.room.players.forEach(p=>onlinePlayers.set(p.id,p));updateRoomPlayers();addChat('システム：ルームに参加しました。');}if(m.type==='player_joined'){onlinePlayers.set(m.player.id,m.player);updateRoomPlayers();addChat('システム：'+m.player.name+' が参加しました。');}if(m.type==='player_moved'){const p=onlinePlayers.get(m.player.id);if(p){p.x=m.player.x;p.y=m.player.y;updateRoomPlayers();}}if(m.type==='player_left'){const p=onlinePlayers.get(m.playerId);onlinePlayers.delete(m.playerId);updateRoomPlayers();if(p)addChat('システム：'+p.name+' が退出しました。');}if(m.type==='chat'){addChat('<b>'+m.name+'</b>：'+m.text);}}; ws.onclose=()=>{online=false;$('onlineStatus').textContent='切断されました';$('onlineRoom').style.display='none';$('onlineToggle').textContent='オンラインモード ON';};}
-function sendChat(){const input=$('chatInput');const text=input.value.trim();if(!text||!ws||ws.readyState!==1)return;ws.send(JSON.stringify({type:'chat',text}));input.value='';}
-
-function battleLoop(){if(!battle)return;const s=$('soul');const handler=e=>{if(!battle)return;let x=parseFloat(s.style.left),y=parseFloat(s.style.top);if(e.key==='ArrowUp'||e.key.toLowerCase()==='w')y-=6;if(e.key==='ArrowDown'||e.key.toLowerCase()==='s')y+=6;if(e.key==='ArrowLeft'||e.key.toLowerCase()==='a')x-=6;if(e.key==='ArrowRight'||e.key.toLowerCase()==='d')x+=6;s.style.left=Math.max(5,Math.min(95,x))+'%';s.style.top=Math.max(5,Math.min(95,y))+'%';};document.onkeydown=handler}
-render();
-log('PokeAPIを読み込み中……');
-PokeData.init().then(()=>{log('PokeAPIのポケモンデータを読み込みました。草むらへ行くと自動で野生ポケモンが選ばれます。');}).catch(()=>{log('PokeAPIに接続できなかったため、内蔵データでゲームを続行します。');});
-
-$('chatInput').addEventListener('keydown',e=>{if(e.key==='Enter')sendChat();});
-</script>
-</body>
-</html>
+<script type="module" src="game.js"></script>
+</body></html>
