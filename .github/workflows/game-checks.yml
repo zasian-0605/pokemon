@@ -17,7 +17,7 @@ jobs:
       - run: node --check game.js
       - run: node --check server.js
       - name: Start local game server
-        run: node server.js > /tmp/pokemon-server.log 2>&1 &
+        run: PORT=4173 node server.js > /tmp/pokemon-server.log 2>&1 &
       - name: Start Chromium
         run: |
           CHROME="$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
