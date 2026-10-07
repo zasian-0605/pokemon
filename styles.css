@@ -14,3 +14,63 @@
 @media(max-width:600px){.intro-text{font-size:14px;min-height:66px}.intro-controls button{padding:9px 11px}}
 
 .intro-speaker{display:inline-block;margin-top:10px;padding:5px 11px;border-radius:8px;background:#e9f1f5;border:1px solid #ced9df;font-weight:800;color:#3c5665;font-size:13px}
+
+/* Current HTML class names */
+.title-screen{display:grid;place-items:center;padding:24px;text-align:center;background:radial-gradient(circle at 50% 26%,#fff 0 14%,#edf4f7 55%,#d4e2e8 100%)}
+.title-screen h1{font-size:clamp(38px,7vw,76px);margin:18px 0 0;letter-spacing:.04em}
+.title-screen h2{font-size:clamp(24px,4vw,42px);margin:3px 0 20px;color:#486373}
+.title-screen p{color:#60717c}
+.pokeball-logo{width:104px;height:104px;margin:auto;border:8px solid #222;border-radius:50%;position:relative;background:linear-gradient(#ef4040 0 44%,#242a2e 44% 56%,#fff 56%)}
+.pokeball-logo:after{content:"";position:absolute;width:26px;height:26px;border:6px solid #222;border-radius:50%;background:#fff;left:31px;top:31px}
+.game-layout{width:min(1280px,97vw);margin:auto;padding:13px;display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:13px}
+.box{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:0 9px 30px #0001}
+.field-box{padding:10px}
+.field-box canvas{display:block;width:100%;height:auto;border-radius:10px;background:#8fc875;image-rendering:pixelated}
+.field-tip{font-size:12px;color:#667984;margin:7px 2px}
+.side{display:grid;align-content:start;gap:13px}
+.side-box,.party-box{padding:13px}
+.section-title{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.statline{display:flex;justify-content:space-between;align-items:center;padding:6px 0}
+.progress{height:8px;background:#d9e1e4;border-radius:99px;overflow:hidden;margin-top:8px}
+.progress span{display:block;height:100%;width:0;background:var(--green);transition:none}
+.route-pill{font-size:12px;border:1px solid #cad5db;border-radius:999px;padding:5px 8px;background:#f7f9fa}
+.top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.small{font-size:12px}
+.muted{color:#77858e;font-size:12px}
+.chat{height:118px;background:#f8fafb;border:1px solid #d7e0e5;border-radius:9px;padding:7px;overflow:auto;font-size:12px;margin:7px 0}
+.chat-row{display:flex;gap:5px}
+.chat-row input{min-width:0;flex:1;border:1px solid #c9d4da;border-radius:8px;padding:8px}
+.battle-card{width:min(1000px,98vw);background:#fff;border:1px solid #b8c5cc;border-radius:18px;padding:12px;box-shadow:0 18px 55px #0002}
+.battle-header{display:flex;justify-content:space-between;align-items:end;gap:15px;border:1px solid #d3dde2;border-radius:11px;padding:11px;background:#fbfcfd}
+.battle-header h2{margin:2px 0;font-size:27px}
+.battle-scene{height:350px;position:relative;overflow:hidden;border-radius:11px;margin:9px 0;background:linear-gradient(#a7cedf 0 45%,#90bf72 45%)}
+.battle-scene:after{content:"";position:absolute;left:7%;right:7%;bottom:15px;height:58px;background:#6d9658;border-radius:50%;z-index:1}
+.enemy-sprite,.player-sprite{position:absolute;width:230px;height:230px;object-fit:contain;z-index:2;filter:drop-shadow(0 10px 4px #0002);image-rendering:auto}
+.enemy-sprite{right:11%;top:4%}
+.player-sprite{left:10%;bottom:-7%;transform:scaleX(-1)}
+.battle-effect{position:absolute;inset:0;z-index:6;pointer-events:none;background:radial-gradient(circle,#fff0,#fff8,transparent 60%);opacity:0}
+.battle-effect.hit{animation:battleFlash .34s steps(3,end)}
+.battle-effect.critical{animation:battleFlash .52s steps(4,end)}
+@keyframes battleFlash{0%{opacity:0}35%{opacity:.8}100%{opacity:0}}
+.move-panel{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin-bottom:7px}
+.move-panel button,.sub-panel button,.battle-menu button{min-height:48px;font-weight:700}
+.sub-panel{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:7px}
+.modal-close{position:absolute;right:9px;top:9px;padding:5px 9px}
+.modal-card h2{margin-top:0}
+.dpad{text-align:center;padding:7px 0}
+.dpad button{min-width:48px}
+.party-item{display:grid;grid-template-columns:38px 1fr auto;gap:7px;align-items:center;padding:8px 0;border-bottom:1px solid #e5eaed}
+.party-item:last-child{border-bottom:0}
+@media(max-width:900px){.game-layout{grid-template-columns:1fr}}
+@media(max-width:650px){
+  .topbar{height:auto;min-height:62px;padding:8px}
+  .game-layout{padding:8px}
+  .starter-grid{grid-template-columns:1fr}
+  .starter-card img{width:125px;height:125px}
+  .battle-scene{height:270px}
+  .enemy-sprite,.player-sprite{width:170px;height:170px}
+  .hp-wrap{width:150px}
+  .battle-menu{grid-template-columns:repeat(2,1fr)}
+  .move-panel,.sub-panel{grid-template-columns:1fr 1fr}
+  .battle-header{padding:9px}
+}
