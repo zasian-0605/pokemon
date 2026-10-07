@@ -67,12 +67,12 @@ const INTRO_LINES=[
  "博士「君もポケモンといっしょに旅をしてみないかい？」",
  "博士「研究所に相棒を用意してある。君にぴったりの1匹を選ぼう。」"
 ];
-const introState={start:0,line:0,ended:false};
+const introState={start:0,line:0,ended:false,raf:0,char:0,typeTime:0,typedLine:-1};
 const introImages={};
 function preloadIntroPokemon(){
   for(const n of ["psyduck","lotad"]){getPokemon(n).then(p=>{const im=new Image();im.src=p.sprite;introImages[n]=im})}
 }
-function drawIntro(){
+function drawIntro(timeNow=performance.now()){
   if(introState.ended)return;
   const c=$("introCanvas"),ctx=c.getContext("2d"),w=c.width,h=c.height,t=30;
   ctx.clearRect(0,0,w,h);
@@ -95,8 +95,11 @@ function drawIntro(){
   ctx.fillStyle="#f0c8aa";ctx.beginPath();ctx.arc(profX,profY-4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f1f3f4";ctx.fillRect(profX-12,profY-18,24,8);ctx.fillStyle="#7896aa";ctx.fillRect(profX+8,profY+2,7,18);
   ctx.fillStyle="#3e5f74";ctx.font="bold 17px sans-serif";ctx.fillText("湖畔の朝",28,34);
   if(elapsed>3100||introState.line>0){
-    $("introSpeaker").textContent=introState.line===0?"？？？": "アサギ博士";
-    $("introText").textContent=INTRO_LINES[introState.line];
+    $("introSpeaker").textContent=introState.line===0?"？？？":"アサギ博士";
+    if(introState.typedLine!==introState.line){introState.typedLine=introState.line;introState.char=0;introState.typeTime=timeNow}
+    const target=INTRO_LINES[introState.line];
+    if(introState.char<target.length && timeNow-introState.typeTime>42){introState.char++;introState.typeTime=timeNow}
+    $("introText").textContent=target.slice(0,introState.char)+(introState.char<target.length?"▌":"");
     $("introNext").textContent=introState.line>=INTRO_LINES.length-1?"相棒を選ぶ":"つぎへ";
   }else{
     $("introSpeaker").textContent="ナレーション";
@@ -107,12 +110,14 @@ function drawIntro(){
 }
 function startIntro(){
   if(introState.raf)cancelAnimationFrame(introState.raf);
-  introState.start=performance.now();introState.line=0;introState.ended=false;show("introScreen");preloadIntroPokemon();drawIntro();
+  introState.start=performance.now();introState.line=0;introState.char=0;introState.typedLine=-1;introState.ended=false;show("introScreen");preloadIntroPokemon();drawIntro();
 }
 function introAdvance(){
   const elapsed=performance.now()-introState.start;
   if(elapsed<1800){introState.start-=1600;return}
-  if(introState.line<INTRO_LINES.length-1){introState.line++;return}
+  const target=INTRO_LINES[introState.line]||"";
+  if(introState.char<target.length){introState.char=target.length;return}
+  if(introState.line<INTRO_LINES.length-1){introState.line++;introState.typedLine=-1;return}
   introState.ended=true;if(introState.raf)cancelAnimationFrame(introState.raf);show("starterScreen");
 }
 function skipIntro(){introState.ended=true;if(introState.raf)cancelAnimationFrame(introState.raf);show("starterScreen")}
