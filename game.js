@@ -482,7 +482,7 @@ function startTrainer(name,team,gym,league){state.battle={wild:false,trainerName
 async function startLeague(){const l=LEAGUE[state.leagueIndex];if(!l){state.storyComplete=true;msg("ポケモンリーグ制覇！ 君は新たなチャンピオンになった！");save();return}try{const team=[];for(const [n,lv] of l.team)team.push(await makeMon(n,lv,true));startTrainer(l.name,team,false,true)}catch{}}
 function enemyMon(){return state.battle?.enemyTeam[state.battle.enemyIndex]}
 function playerMon(){return state.party[state.battle?.playerIndex??0]}
-async let battleAnimation=0;
+let battleAnimation=0;
 function animateBattleSprites(time){
   if(state.screen!=="battleScreen"){battleAnimation=0;return}
   const f=animFrame(time),bob=stepped([0,2,0,-2],f),tilt=stepped([0,0,-1,0],f);
