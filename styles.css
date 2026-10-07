@@ -12,3 +12,5 @@
 .intro-text{min-height:72px;margin-top:10px;padding:13px 15px;border:1px solid #c9d5da;border-radius:11px;background:#fbfdfe;line-height:1.65;font-size:16px}
 .intro-controls{display:flex;justify-content:flex-end;gap:8px;margin-top:9px}
 @media(max-width:600px){.intro-text{font-size:14px;min-height:66px}.intro-controls button{padding:9px 11px}}
+
+.intro-speaker{display:inline-block;margin-top:10px;padding:5px 11px;border-radius:8px;background:#e9f1f5;border:1px solid #ced9df;font-weight:800;color:#3c5665;font-size:13px}
