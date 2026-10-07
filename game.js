@@ -91,6 +91,13 @@ function drawIntro(timeNow=performance.now()){
   const profX=780-(p1*115)-(p2*120),profY=110+(p1*85)+(p2*125),walk=Math.floor(elapsed/160)%2;
   ctx.fillStyle="#40505a";ctx.beginPath();ctx.ellipse(profX,profY+42,19,7,0,0,Math.PI*2);ctx.fill();
   ctx.fillStyle="#2e343a";ctx.fillRect(profX-8,profY+28,7,18+(walk?3:0));ctx.fillRect(profX+1,profY+28,7,18+(walk?0:3));
+  const inPond=profX>500&&profX<860&&profY>90&&profY<330;
+  if(inPond){
+    ctx.strokeStyle="#bce7ea";ctx.lineWidth=2;
+    const rr=16+Math.sin(elapsed/180)*5;ctx.beginPath();ctx.ellipse(profX,profY+30,rr,rr*.38,0,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.ellipse(profX,profY+30,rr+10,rr*.48,0,0,Math.PI*2);ctx.stroke();
+    if(Math.floor(elapsed/120)%3===0){ctx.fillStyle="#fff";ctx.fillRect(profX-18,profY+20,4,5);ctx.fillRect(profX+14,profY+18,4,5)}
+  }
   ctx.fillStyle="#e9edf0";ctx.fillRect(profX-18,profY+4,36,29);ctx.fillStyle="#24303a";ctx.fillRect(profX-13,profY+27,26,5);
   ctx.fillStyle="#f0c8aa";ctx.beginPath();ctx.arc(profX,profY-4,12,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f1f3f4";ctx.fillRect(profX-12,profY-18,24,8);ctx.fillStyle="#7896aa";ctx.fillRect(profX+8,profY+2,7,18);
   ctx.fillStyle="#3e5f74";ctx.font="bold 17px sans-serif";ctx.fillText("湖畔の朝",28,34);
