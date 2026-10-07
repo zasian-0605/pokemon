@@ -44,7 +44,10 @@ async function getMove(name){
   const m=await r.json();cache.move.set(name,m);return m
 }
 function statCalc(base,level){return{hp:Math.floor(((base.hp*2+31)*level)/100)+level+10,attack:Math.floor(((base.attack*2+31)*level)/100)+5,defense:Math.floor(((base.defense*2+31)*level)/100)+5,spAttack:Math.floor(((base["special-attack"]*2+31)*level)/100)+5,spDefense:Math.floor(((base["special-defense"]*2+31)*level)/100)+5,speed:Math.floor(((base.speed*2+31)*level)/100)+5}}
-function baseMap(p){return Object.fromEntries(p.stats.map(x=>[x.stat.name,x.base_stat]))}
+function baseMap(p){
+  if(!p?.stats)throw new Error("pokemon stats missing");
+  return Array.isArray(p.stats)?Object.fromEntries(p.stats.map(x=>[x.stat.name,x.base_stat])):p.stats;
+}
 async function chooseMoves(p,level){
   const candidates=p.moves.filter(x=>x.level<=level).sort((a,b)=>b.level-a.level);const names=[];
   for(const x of candidates){if(!names.includes(x.name))names.push(x.name);if(names.length>=4)break}
