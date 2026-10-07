@@ -164,7 +164,7 @@ function drawPond(ctx,x,y,w,h){
   ctx.fillStyle="#78aa59";for(let i=0;i<8;i++){const px=x+25+i*42;const py=y+h-10-(i%3)*5;ctx.beginPath();ctx.ellipse(px,py,12,4,.2,0,Math.PI*2);ctx.fill()}
 }
 function drawBuilding(ctx,x,y,label,type="house"){
-  const body=type==="shop"?"#f2c98c":type==="gym"?"#cad8e4":"#efddc4";
+  const body=type==="shop"?"#f2c98c":type==="gym"?"#cad8e4":type==="lab"?"#dbe8ef":"#efddc4";
   ctx.fillStyle="#7d4e3e";ctx.fillRect(x*30,y*30,150,30);ctx.fillStyle=body;ctx.fillRect(x*30,y*30+16,150,104);
   ctx.fillStyle=type==="gym"?"#607d9a":"#c65a4e";ctx.beginPath();ctx.moveTo(x*30-10,y*30+16);ctx.lineTo((x+2.5)*30,(y-1)*30);ctx.lineTo((x+5)*30+10,y*30+16);ctx.closePath();ctx.fill();
   ctx.fillStyle="#57443b";ctx.fillRect(x*30+60,y*30+67,30,53);ctx.fillStyle="#7fc9dc";ctx.fillRect(x*30+16,y*30+58,27,27);ctx.fillRect(x*30+108,y*30+58,27,27);
@@ -182,9 +182,15 @@ function drawField(){
   for(let x=0;x<w;x+=16){ctx.fillStyle=x%32===0?"#c7a96f":"#dfc791";ctx.fillRect(x,9*t,8,3);ctx.fillRect(x,10*t+7,6,2)}
   if(a.bg==="route"){for(const [x,y] of [[3,3],[4,3],[3,4],[25,4],[26,4],[25,5],[6,15],[7,15],[6,16],[20,15],[21,15],[20,16]])drawTree(ctx,x*t+28,y*t+26,.8);drawFlowers(ctx,0,0,w,h)}
   if(a.bg==="town"){
-    drawBuilding(ctx,2,2,"ポケモンセンター","house");drawBuilding(ctx,9,2,"フレンドリィショップ","shop");drawBuilding(ctx,18,2,"ジム","gym");
-    for(const [x,y,s] of [[1,14,1],[5,16,.9],[26,15,.8],[28,6,.9],[16,4,.75]])drawTree(ctx,x*t+15,y*t+20,s);
+    drawBuilding(ctx,2,2,"ポケモンセンター","house");
+    drawBuilding(ctx,9,2,"フレンドリィショップ","shop");
+    drawBuilding(ctx,18,2,"ジム","gym");
+    drawBuilding(ctx,17,11,"アサギ研究所","lab");
+    drawPond(ctx,485,345,250,145);
+    for(const [x,y,s] of [[1,14,1],[5,16,.9],[26,15,.8],[28,6,.9],[16,4,.75],[15,17,.72],[25,11,.72]])drawTree(ctx,x*t+15,y*t+20,s);
     drawFlowers(ctx,0,0,w,h);
+    // Professor and rival are visible NPCs near the laboratory.
+    drawNpc(ctx,18.3*t,10.2*t,"professor");drawNpc(ctx,22.2*t,12.8*t,"rival");
   }
   if(a.bg==="cave"){for(const [x,y] of [[3,5],[5,11],[22,5],[23,13],[11,16],[26,16]]){ctx.fillStyle="#817a87";ctx.beginPath();ctx.arc(x*t,y*t,16,0,Math.PI*2);ctx.fill();ctx.fillStyle="#aaa3ad";ctx.fillRect(x*t-3,y*t-9,6,5)}}
   if(a.bg==="mountain"){
@@ -195,6 +201,14 @@ function drawField(){
   // player
   const px=state.pos.x*t+15,py=state.pos.y*t+18;ctx.fillStyle="#29323a";ctx.beginPath();ctx.ellipse(px,py+15,13,5,0,0,Math.PI*2);ctx.fill();ctx.fillStyle="#f6d0ad";ctx.beginPath();ctx.arc(px,py-8,8,0,Math.PI*2);ctx.fill();ctx.fillStyle="#315c9c";ctx.fillRect(px-9,py-18,18,7);ctx.fillStyle="#e9f2f4";ctx.fillRect(px-7,py,14,16);ctx.fillStyle="#4772af";ctx.fillRect(px-7,py+13,5,9);ctx.fillRect(px+2,py+13,5,9);
   if(state.area===0){ctx.fillStyle="#5c6470";ctx.fillRect(17*t+12,12*t+8,24,20);ctx.fillStyle="#fff";ctx.font="10px sans-serif";ctx.fillText("研究所",17*t+2,12*t+40)}
+}
+function drawNpc(ctx,x,y,kind){
+  const s=.82;ctx.fillStyle="#3d4d55";ctx.beginPath();ctx.ellipse(x,y+25*s,12*s,5*s,0,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=kind==="professor"?"#eef2f4":"#d6b0a0";ctx.fillRect(x-10*s,y-1*s,20*s,25*s);
+  ctx.fillStyle=kind==="professor"?"#ffffff":"#2c4479";ctx.fillRect(x-9*s,y+8*s,18*s,14*s);
+  ctx.fillStyle="#f2c6a5";ctx.beginPath();ctx.arc(x,y-9*s,8*s,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle=kind==="professor"?"#e8edf0":"#4e2c25";ctx.fillRect(x-9*s,y-17*s,18*s,6*s);
+  if(kind==="professor"){ctx.fillStyle="#6b7f90";ctx.fillRect(x+7*s,y-2*s,5*s,13*s);ctx.fillStyle="#ffffff";ctx.fillRect(x-15*s,y+1*s,7*s,12*s)}
 }
 function renderField(){drawField()}
 function renderPlayers(){if(!state.players)return;const c=$("field"),ctx=c.getContext("2d");for(const p of state.players.values()){if(p.id===state.selfId)continue;ctx.fillStyle="#5d63a8";ctx.fillRect(p.x/100*c.width-8,p.y/100*c.height-11,16,22)}}
@@ -219,7 +233,8 @@ async function interact(){
     if(x>=2&&x<=6&&y>=6&&y<=7){healParty();msg("ポケモンセンターで回復した！");return}
     if(x>=9&&x<=13&&y>=6&&y<=7){shop();return}
     if(x>=18&&x<=22&&y>=6&&y<=7){await challengeGym();return}
-    if(Math.abs(x-18)<=1&&Math.abs(y-12)<=1){await rival();return}
+    if(x>=17&&x<=21&&y>=15&&y<=17){$("dialogContent").innerHTML="<h2>アサギ博士の研究所</h2><p>博士「ここではポケモンの生態と、トレーナーとの絆について研究しているんだ。」</p><p>博士「池にいるポケモンも観察してみると面白いよ。」</p>";$("dialogModal").classList.remove("hidden");return}
+    if(Math.abs(x-22)<=1&&Math.abs(y-13)<=1){await rival();return}
   }
   if(state.area===4&&state.badges===4&&Math.abs(state.pos.x-15)<=2&&Math.abs(state.pos.y-9)<=2){await startLeague();return}
   msg("ここには何もないようだ。")
