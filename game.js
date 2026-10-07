@@ -75,7 +75,7 @@ async function attack(move){
  if(r.critical)text+=" 急所に当たった！";
  if(r.mult===0)text+=" 効果がないようだ。";else if(r.mult>=2)text+=" 効果はばつぐんだ！";else if(r.mult<1)text+=" 効果はいまひとつのようだ。";
  setBattle(text);
- if(e.currentHp<=0){gainExp(p,e);setTimeout(()=>{state.battle=null;show("world");say("野生の"+e.nameJa+"を倒した！");save()},1100);return}
+ if(e.currentHp<=0){gainExp(p,e).then(()=>{setTimeout(()=>{state.battle=null;show("world");say("野生の"+e.nameJa+"を倒した！");save()},1100)});return}
  setTimeout(enemyTurn,750)
 }
 async function enemyTurn(){
@@ -91,7 +91,7 @@ async function enemyTurn(){
  setBattle(text);
  if(p.currentHp<=0){setTimeout(()=>{p.currentHp=p.stats.hp;state.battle=null;show("world");say("目の前がまっくらになった…… ポケモンセンターへ戻った。");save()},1000)}
 }
-function gainExp(p,e){const gained=Math.max(1,Math.floor((e.baseExp||20)*e.level/7));p.exp=(p.exp||0)+gained;let leveled=false;while(p.exp>=p.level*p.level*10){p.exp-=p.level*p.level*10;const oldHp=p.stats.hp;p.level++;p.stats=statsFromBase(p.baseStats,p.level);p.currentHp=Math.min(p.stats.hp,p.currentHp+(p.stats.hp-oldHp));leveled=true}if(leveled)setBattle(p.nameJa+"は Lv."+p.level+" に上がった！");else setBattle(p.nameJa+"は "+gained+" の経験値を得た！")}
+async function gainExp(p,e){const gained=Math.max(1,Math.floor((e.baseExp||20)*e.level/7));p.exp=(p.exp||0)+gained;let leveled=false;while(p.exp>=p.level*p.level*10){p.exp-=p.level*p.level*10;const oldHp=p.stats.hp;p.level++;p.stats=statsFromBase(p.baseStats,p.level);p.currentHp=Math.min(p.stats.hp,p.currentHp+(p.stats.hp-oldHp));leveled=true}if(leveled){const chain=p.evolutionChain||[];const at=chain.findIndex(x=>x.name===p.species);const next=at>=0?chain[at+1]:null;const req=next?.details?.find(d=>Number.isFinite(d.min_level))?.min_level;if(next&&req&&p.level>=req){try{const oldExp=p.exp,oldUid=p.uid||("m"+Date.now());const evo=await makeMon(next.name,p.level);Object.assign(p,evo,{uid:oldUid,exp:oldExp});setBattle(p.nameJa+"は "+evo.nameJa+" に進化した！");return}catch{}}setBattle(p.nameJa+"は Lv."+p.level+" に上がった！")}else setBattle(p.nameJa+"は "+gained+" の経験値を得た！")}
 function captureChance(mon){const hp=Math.max(0,mon.currentHp/mon.stats.hp),rate=Math.max(1,mon.captureRate||45);return Math.min(.95,(1-hp)*rate/255+.08)}
 function tryCatch(){const b=state.battle;if(!b||state.items.pokeball<=0)return false;state.items.pokeball--;const e=b.enemy;if(Math.random()<captureChance(e)){const toParty=state.party.length<6;if(toParty)state.party.push(e);else state.box.push(e);state.battle=null;show("world");say(e.nameJa+"をつかまえた！ "+(toParty?"てもちに加えた。":"ボックスに送った。"));save();return true}setBattle("ボールから出てしまった！");setTimeout(enemyTurn,750);return false}
 function showMoves(){const box=$("moves");box.classList.remove("hidden");$("battleCommands").classList.add("hidden");box.innerHTML=state.party[0].moves.map((m,i)=>'<button data-move="'+i+'" '+(m.pp<=0?"disabled":"")+'>'+m.nameJa+'<br><small>'+TYPE_JA[m.type]+' '+m.pp+'/'+m.maxPp+' PP</small></button>').join("")+'<button data-back="1">もどる</button>';box.querySelectorAll("[data-move]").forEach(b=>b.onclick=()=>{if(b.dataset.back){box.classList.add("hidden");$("battleCommands").classList.remove("hidden");return}const m=state.party[0].moves[+b.dataset.move];box.classList.add("hidden");$("battleCommands").classList.remove("hidden");attack(m)})}
