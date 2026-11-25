@@ -9,3 +9,13 @@ services:
     healthCheckPath: /health
 
 # Release validation: deterministic Node checks
+
+  - type: web
+    name: pokemon-data-generator
+    runtime: node
+    plan: free
+    rootDir: data-generator
+    buildCommand: npm install --no-audit --no-fund
+    startCommand: npm start
+    autoDeploy: true
+    healthCheckPath: /health
